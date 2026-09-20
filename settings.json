@@ -1,0 +1,15 @@
+{
+  "company":{
+    "name": "ООО Ромашка",
+    "restaurants": {
+      "delivery_restaurants": 3,
+      "combination_restaurants" : 4,
+      "visitor_restaurants": 3
+    }
+
+  }
+
+
+
+
+}
