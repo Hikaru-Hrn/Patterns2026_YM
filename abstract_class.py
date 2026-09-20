@@ -1,27 +1,25 @@
 from abc import ABC, abstractmethod
-import uuid
+from typing import Optional
+from uuid import UUID, uuid4
 
-class AbstractClass(ABC):
-    def __init__(self):
-        self.__id = uuid.uuid4()
-        self.__name = None
 
-    @abstractmethod
-    def set_name(self, name):
-        if name is not None:
-            self.__name = name
-        else:
-            raise ValueError("Имя должно быть заполнено")
+class AbstractEntity(ABC):
+    def __init__(self, name: str, code: Optional[str | UUID] = None) -> None:
+        self._name: str = ""
+        self._code: str = ""
 
-    @abstractmethod
+        self.name = name  # Валидация через property setter
+        self.code = code if code is not None else str(uuid4())
+
     @property
-    def name(self):
-        return self.__name
+    def name(self) -> str:
+        return self._name
 
-    @abstractmethod
-    @property
-    def id(self):
-        return self.__id
-
-
-
+    @name.setter
+    def name(self, value: str) -> None:
+        if not isinstance(value, str):
+            raise TypeError("Наименование должно быть строкового типа (str)")
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Наименование не может быть пустой строкой")
+        self._name = stripped
