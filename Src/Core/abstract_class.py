@@ -1,24 +1,17 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 from uuid import UUID, uuid4
 
 
 class abstract_entity(ABC):
-    def __init__(self, name: str, code: Optional[str | UUID] = None) -> None:
+    def __init__(self) -> None:
         """
-        Инициализация защищенных полей делегируется сеттерам
-        для централизованной валидации входных данных.
-
         name: Наименование сущности.
         code: Уникальный код, генерируется если не найден.
         """
         # Внутренние поля
         self._name: str = ""
-        self._code: str = ""
+        self._code: str = str(uuid4())
 
-        # Передаем значения через свойства-сеттеры для валидации (принцип DRY)
-        self.name = name
-        self.code = code if code is not None else uuid4()
 
     @property
     def name(self) -> str:
