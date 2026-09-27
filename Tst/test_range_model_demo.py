@@ -4,7 +4,7 @@ from Src.Models.range_model import range_model
 def test_valid_result_range_model_demo_gram_and_kg():
     """
     Проверяет демонстрационный сценарий пересчёта единиц
-    измерения: 1 кг = 1000 грамм.
+    измерения: 1 кг = 1000 грамм
 
     Ожидаемый результат:
     базовая единица 'грамм' имеет base = None и коэффициент 1,
