@@ -37,8 +37,8 @@ class nomenclature_model(entity_model):
         """Устанавливает полное наименование номенклатуры
 
         :param value: Полное наименование
-        :raises arguments_exeption: Если значение не строка или None
-        :raises max_length_exeption: Если длина превышает максимально допустимую
+        :raises arguments_exeption: Если значение не строка или присвоен None
+        :raises max_length_exeption: Если длина превышает максимальную длину
         """
         if value is None or not isinstance(value, str):
             raise arguments_exeption("full_name", "Некорректно переданный аргумент!")

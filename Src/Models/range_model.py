@@ -6,7 +6,7 @@ class range_model(entity_model):
     Модель единицы измерения
 
     Содержит:
-        - базовая единица измерения
+        - базовая единица измерения,
         - коэффициент пересчета
     """
 
@@ -14,10 +14,11 @@ class range_model(entity_model):
     __convertion_factor: float = None
 
     def __init__(self, name: str = "", convertion_factor:float = 1.0, base: "range_model" = None) -> None:
-        """
-        :param name:
-        :param convertion_factor:
-        :param base:
+        """Инициализирует единицу измерения
+
+        :param name: Наименование
+        :param convertion_factor: Коэффициент пересчёта к базовой единице
+        :param base: Базовая единица измерения
         """
         super().__init__()
         self.name = name
@@ -33,7 +34,7 @@ class range_model(entity_model):
     def base(self, value: "range_model") -> None:
         """Устанавливает базовую единицу измерения
 
-        :param value: Базовая единица измерения или None
+        :param value: Базовая единица измерения или присвоен None
         :raises arguments_exeption: Если значение не range_model и не None
         """
         if value is not None and not isinstance(value, range_model):
@@ -43,7 +44,7 @@ class range_model(entity_model):
     @property
     def conversion_factor(self) -> float:
         """Возвращает коэффициент пересчёта относительно базовой единицы"""
-        return self.__conversion_factor
+        return self.__convertion_factor
 
     @conversion_factor.setter
     def conversion_factor(self, value: float) -> None:
@@ -56,4 +57,4 @@ class range_model(entity_model):
             raise arguments_exeption("conversion_factor", "Коэффициент должен быть числом!")
         if value <= 0:
             raise arguments_exeption("conversion_factor", "Коэффициент должен быть больше нуля!")
-        self.__conversion_factor = float(value)
+        self.__convertion_factor = float(value)
