@@ -45,7 +45,7 @@ class base_exception(Exception):
         )
 
 
-class arguments_exeption(base_exception):
+class arguments_exception(base_exception):
     """Исключение о некорректно переданном аргументе."""
 
     def __init__(self, field: str, message: str, stack_trace: str = "") -> None:
@@ -58,7 +58,7 @@ class arguments_exeption(base_exception):
         super().__init__(field, message, stack_trace)
 
 
-class max_length_exeption(base_exception):
+class max_length_exception(base_exception):
     """Исключение о превышении максимальной длины поля."""
 
     def __init__(self, field: str, max_length: int, stack_trace: str = "") -> None:
@@ -72,7 +72,7 @@ class max_length_exeption(base_exception):
         super().__init__(field, message, stack_trace)
 
 
-class length_exeption(base_exception):
+class length_exception(base_exception):
     """Исключение о некорректной длине поля."""
 
     def __init__(self, field: str, length: int, document: str,
@@ -84,11 +84,11 @@ class length_exeption(base_exception):
         :param document: Название документа/поля для сообщения.
         :param stack_trace: Трассировка стека (при наличии).
         """
-        message = f"Неккоректная длина {document}! Она должна быть {length} символов"
+        message = f"Некорректная длина {document}! Она должна быть {length} символов"
         super().__init__(field, message, stack_trace)
 
 
-class validation_exeptoion(base_exception):
+class validation_exception(base_exception):
     """Исключение о непройденной валидации значения поля."""
 
     def __init__(self, field: str, message: str, stack_trace: str = "") -> None:

@@ -1,5 +1,5 @@
 from Src.Core.abstract_model import abstract_model
-from Src.Core.exception import arguments_exeption, max_length_exeption
+from Src.Core.exception import arguments_exception, max_length_exception
 
 
 class entity_model(abstract_model):
@@ -21,16 +21,16 @@ class entity_model(abstract_model):
         """Устанавливает наименование сущности.
 
         :param value: Наименование (строка, не пустая, без лишних пробелов по краям).
-        :raises arguments_exeption: Если значение не строка, None или пустое.
-        :raises max_length_exeption: Если длина превышает максимально допустимую.
+        :raises arguments_exception: Если значение не строка, None или пустое.
+        :raises max_length_exception: Если длина превышает максимально допустимую.
         """
         if value is None or not isinstance(value, str) or value.strip() == "":
-            raise arguments_exeption("name", "Некорректно переданный аргумент")
+            raise arguments_exception("name", "Некорректно переданный аргумент")
         if len(value.strip()) > self.__max_length:
-            raise max_length_exeption("name", self.__max_length)
+            raise max_length_exception("name", self.__max_length)
         self.__name = value.strip()
 
     @property
-    def max_lenght(self) -> int:
+    def max_length(self) -> int:
         """Возвращает максимально допустимую длину наименования."""
         return self.__max_length

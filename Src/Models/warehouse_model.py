@@ -1,5 +1,5 @@
 from Src.Core.entity_model import entity_model
-from Src.Core.exception import arguments_exeption, max_length_exeption
+from Src.Core.exception import arguments_exception, max_length_exception
 
 
 class warehouse_model(entity_model):
@@ -32,11 +32,11 @@ class warehouse_model(entity_model):
         """Устанавливает адрес склада
 
         :param value: Адрес склада
-        :raises arguments_exeption: Если значение не строка или присвоен None
-        :raises max_length_exeption: Если длина превышает максимальную длину
+        :raises arguments_exception: Если значение не строка или присвоен None
+        :raises max_length_exception: Если длина превышает максимальную длину
         """
         if value is None or not isinstance(value, str):
-            raise arguments_exeption("address", "Некорректно переданный аргумент!")
+            raise arguments_exception("address", "Некорректно переданный аргумент!")
         if len(value.strip()) > self.__max_len_address:
-            raise max_length_exeption("address", self.__max_len_address)
+            raise max_length_exception("address", self.__max_len_address)
         self.__address = value

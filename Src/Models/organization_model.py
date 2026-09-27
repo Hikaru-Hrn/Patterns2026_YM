@@ -1,9 +1,9 @@
 from Src.Core.entity_model import entity_model
 from Src.Core.exception import (
-    arguments_exeption,
-    max_length_exeption,
-    length_exeption,
-    validation_exeptoion,
+    arguments_exception,
+    max_length_exception,
+    length_exception,
+    validation_exception,
 )
 
 class organization_model(entity_model):
@@ -91,18 +91,18 @@ class organization_model(entity_model):
         """Устанавливает ИНН организации
 
         :param value: Строка ИНН длиной 10 символов
-        :raises arguments_exeption: Если значение не строка или None
-        :raises length_exeption: Если длина не равна 10
-        :raises validation_exeptoion: Если значение содержит не цифры или контрольная сумма некорректна
+        :raises arguments_exception: Если значение не строка или None
+        :raises length_exception: Если длина не равна 10
+        :raises validation_exception: Если значение содержит не цифры или контрольная сумма некорректна
         """
         if value is None or not isinstance(value, str):
-            raise arguments_exeption("inn", "Некорректно переданный аргумент!")
+            raise arguments_exception("inn", "Некорректно переданный аргумент!")
         if len(value.strip()) != self.__len_inn:
-            raise length_exeption("inn", self.__len_inn, "ИНН")
-        if value.isdigit() == False:
-            raise validation_exeptoion("inn", "ИНН должен состоять только из цифр!")
+            raise length_exception("inn", self.__len_inn, "ИНН")
+        if value.strip().isdigit() == False:
+            raise validation_exception("inn", "ИНН должен состоять только из цифр!")
         if self.__check_inn(value) == False:
-            raise validation_exeptoion("inn", "Некорректный ИНН!")
+            raise validation_exception("inn", "Некорректный ИНН!")
         self.__inn = value
 
     @property
@@ -115,16 +115,16 @@ class organization_model(entity_model):
         """Устанавливает БИК банка
 
         :param value: Строка БИК длиной 9 символов
-        :raises arguments_exeption: Если значение не строка или присвоен None
-        :raises length_exeption: Если длина не равна 9
-        :raises validation_exeptoion: Если значение содержит не цифры
+        :raises arguments_exception: Если значение не строка или присвоен None
+        :raises length_exception: Если длина не равна 9
+        :raises validation_exception: Если значение содержит не цифры
         """
         if value is None or not isinstance(value, str):
-            raise arguments_exeption("bic", "Некорректно переданный аргумент!")
+            raise arguments_exception("bic", "Некорректно переданный аргумент!")
         if len(value.strip()) != self.__len_bic:
-            raise length_exeption("bic", self.__len_bic, "БИК")
+            raise length_exception("bic", self.__len_bic, "БИК")
         if value.isdigit() == False:
-            raise validation_exeptoion("bic", "БИК должен состоять только из цифр!")
+            raise validation_exception("bic", "БИК должен состоять только из цифр!")
         self.__bic = value
 
     @property
@@ -137,18 +137,18 @@ class organization_model(entity_model):
         """Устанавливает расчётный счёт
 
         :param value: Строка счёта длиной 20 символов
-        :raises arguments_exeption: Если значение не строка или присвоен None
-        :raises length_exeption: Если длина не равна 20
-        :raises validation_exeptoion: Если значение содержит не цифры или контрольная сумма некорректна
+        :raises arguments_exception: Если значение не строка или присвоен None
+        :raises length_exception: Если длина не равна 20
+        :raises validation_exception: Если значение содержит не цифры или контрольная сумма некорректна
         """
         if value is None or not isinstance(value, str):
-            raise arguments_exeption("account", "Некорректно переданный аргумент!")
+            raise arguments_exception("account", "Некорректно переданный аргумент!")
         if len(value.strip()) != self.__len_account:
-            raise length_exeption("account", self.__len_account, "Счет")
+            raise length_exception("account", self.__len_account, "Счет")
         if value.isdigit() == False:
-            raise validation_exeptoion("account", "Счет должен состоять только из цифр!")
+            raise validation_exception("account", "Счет должен состоять только из цифр!")
         if self.__check_account(value) == False:
-            raise validation_exeptoion("account", "Некорректный Счет!")
+            raise validation_exception("account", "Некорректный Счет!")
         self.__account = value
 
     @property
@@ -161,11 +161,11 @@ class organization_model(entity_model):
         """Устанавливает форму собственности / владельца
 
         :param value: Строка длиной не более 50 символов
-        :raises arguments_exeption: Если значение не строка или присвоен None
-        :raises max_length_exeption: Если длина превышает 50 символов
+        :raises arguments_exception: Если значение не строка или присвоен None
+        :raises max_length_exception: Если длина превышает 50 символов
         """
         if value is None or not isinstance(value, str):
-            raise arguments_exeption("owner", "Некорректно переданный аргумент!")
+            raise arguments_exception("owner", "Некорректно переданный аргумент!")
         if len(value.strip()) > self.__max_len_owner:
-            raise max_length_exeption("owner", self.__max_len_owner)
+            raise max_length_exception("owner", self.__max_len_owner)
         self.__owner = value
