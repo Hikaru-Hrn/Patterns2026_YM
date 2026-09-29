@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID, uuid4
 
 
-class abstract_entity(ABC):
+class abstract_model(ABC):
     def __init__(self) -> None:
         """
         name: Наименование сущности.
