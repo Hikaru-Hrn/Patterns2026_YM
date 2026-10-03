@@ -99,3 +99,9 @@ class validation_exception(base_exception):
         :param stack_trace: Трассировка стека (при наличии).
         """
         super().__init__(field, message, stack_trace)
+
+class operation_exception(base_exception):
+    """Исключение при выполнении бизнес-операции."""
+
+    def __init__(self, message: str, stack_trace: str = "") -> None:
+        super().__init__(field="operation", message=message, stack_trace=stack_trace)
