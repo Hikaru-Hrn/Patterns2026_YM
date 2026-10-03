@@ -27,7 +27,7 @@ class settings_model(abstract_model):
         """Устанавливает карточку организации.
 
         :param value: Новая карточка организации.
-        :raises arguments_exeption: Если значение не organization_model.
+        :raises arguments_exception: Если значение не organization_model.
         """
         validator.validate(value, organization_model, "organization")
         self.__organization = value
@@ -42,8 +42,8 @@ class settings_model(abstract_model):
         """Устанавливает ФИО руководителя.
 
         :param value: ФИО руководителя (строка до 255 символов).
-        :raises arguments_exeption: Если значение не строка или None.
-        :raises max_length_exeption: Если длина превышает 255 символов.
+        :raises arguments_exception: Если значение не строка или None.
+        :raises max_length_exception: Если длина превышает 255 символов.
         """
         validator.validate(value, str, "boss_name", max_len=self.__max_len_boss_name)
         self.__boss_name = value
@@ -58,8 +58,8 @@ class settings_model(abstract_model):
         """Устанавливает ФИО главного бухгалтера.
 
         :param value: ФИО главного бухгалтера (строка до 255 символов).
-        :raises arguments_exeption: Если значение не строка или None.
-        :raises max_length_exeption: Если длина превышает 255 символов.
+        :raises arguments_exception: Если значение не строка или None.
+        :raises max_length_exception: Если длина превышает 255 символов.
         """
         validator.validate(value, str, "account_name", max_len=self.__max_len_account_name)
         self.__account_name = value
@@ -74,7 +74,7 @@ class settings_model(abstract_model):
         """Устанавливает флаг первого запуска.
 
         :param new_flag: Новое значение флага (True/False).
-        :raises arguments_exeption: Если значение не bool.
+        :raises arguments_exception: Если значение не bool.
         """
         validator.validate(new_flag, bool, "first_launch_flag")
         self.__first_launch_flag = new_flag

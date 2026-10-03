@@ -35,11 +35,13 @@ class organization_model(entity_model):
         :param owner: Форма собственности / владелец.
         """
         super().__init__()
-        self.name = name
+        if name != "":
+            self.name = name
         self.inn = inn
         self.bic = bic
         self.account = account
-        self.owner = owner
+        if owner != "":
+            self.owner = owner
 
     @property
     def inn(self) -> str:
@@ -51,12 +53,12 @@ class organization_model(entity_model):
         """Устанавливает ИНН организации.
 
         :param value: Строка ИНН длиной 10 символов.
-        :raises arguments_exeption: Если значение не строка или None.
-        :raises length_exeption: Если длина не равна 10.
-        :raises validation_exeptoion: Если значение содержит нецифры
+        :raises arguments_exception: Если значение не строка или None.
+        :raises length_exception: Если длина не равна 10.
+        :raises validation_exception: Если значение содержит нецифры
             или контрольная сумма некорректна.
         """
-        validator.validate(value, str, "inn", self.__len_inn)
+        validator.validate(value, str, "inn", self.__len_inn, document="ИНН")
         validator.digit_validate(value, "inn")
         validator.check_inn(value)
         self.__inn = value
@@ -71,11 +73,11 @@ class organization_model(entity_model):
         """Устанавливает БИК банка.
 
         :param value: Строка БИК длиной 9 символов.
-        :raises arguments_exeption: Если значение не строка или None.
-        :raises length_exeption: Если длина не равна 9.
-        :raises validation_exeptoion: Если значение содержит нецифры.
+        :raises arguments_exception: Если значение не строка или None.
+        :raises length_exception: Если длина не равна 9.
+        :raises validation_exception: Если значение содержит нецифры.
         """
-        validator.validate(value, str, "bic", self.__len_bic)
+        validator.validate(value, str, "bic", self.__len_bic, document="БИК")
         validator.digit_validate(value, "bic")
         self.__bic = value
 
@@ -89,12 +91,12 @@ class organization_model(entity_model):
         """Устанавливает расчётный счёт.
 
         :param value: Строка счёта длиной 20 символов.
-        :raises arguments_exeption: Если значение не строка или None.
-        :raises length_exeption: Если длина не равна 20.
-        :raises validation_exeptoion: Если значение содержит нецифры
+        :raises arguments_exception: Если значение не строка или None.
+        :raises length_exception: Если длина не равна 20.
+        :raises validation_exception: Если значение содержит нецифры
             или контрольная сумма некорректна.
         """
-        validator.validate(value, str, "account", self.__len_account)
+        validator.validate(value, str, "account", self.__len_account, document="Счет")
         validator.digit_validate(value, "account")
         validator.check_account(value, self.__bic)
         self.__account = value
@@ -109,8 +111,8 @@ class organization_model(entity_model):
         """Устанавливает форму собственности / владельца.
 
         :param value: Строка длиной не более 50 символов.
-        :raises arguments_exeption: Если значение не строка или None.
-        :raises max_length_exeption: Если длина превышает 50 символов.
+        :raises arguments_exception: Если значение не строка или None.
+        :raises max_length_exception: Если длина превышает 50 символов.
         """
         validator.validate(value, str, "owner", max_len=self.__max_len_owner)
         self.__owner = value

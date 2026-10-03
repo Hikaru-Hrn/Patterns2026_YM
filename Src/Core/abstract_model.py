@@ -26,7 +26,7 @@ class abstract_model(ABC):
     @unique_code.setter
     def unique_code(self, value: str):
         if value.strip() == "":
-            raise argument_exception("value", "Некорректно передан параметр!")
+            raise arguments_exception("value", "Некорректно передан параметр!")
 
         self.__unique_code = value.strip()
 
