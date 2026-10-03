@@ -26,7 +26,7 @@ class settings_manager(abstract_manager):
         """
         if not hasattr(cls, "instance"):
             cls.instance = super(settings_manager, cls).__new__(cls)
-        return cls._instance
+        return cls.instance
 
     def __init__(self):
         """
@@ -40,7 +40,7 @@ class settings_manager(abstract_manager):
         super().__init__()
         self._settings = settings_model()
         self._is_loaded = False
-        self._data = []
+        self._data = {}
         self._initialized = True
 
 
@@ -65,31 +65,35 @@ class settings_manager(abstract_manager):
         :return: True, если преобразование прошло успешно, иначе False.
         """
         try:
-            if not isinstance(self._data, list):
+            if not isinstance(self._data, dict):
+                self._is_loaded = False
                 return False
 
             org_data = self._data.get("organization")
-            if not isinstance(org_data, list):
+            if not isinstance(org_data, dict):
+                self._is_loaded = False
                 return False
 
-            org = organization_model()
-
-            org.name = str(org_data.get("name", ""))
-            org.inn = str(org_data.get("inn", ""))
-            org.bic = str(org_data.get("bic", ""))
-            org.account = str(org_data.get("account", ""))
-            org.owner = str(org_data.get("owner", ""))
+            org = organization_model(
+                name=str(org_data.get("name", "")),
+                inn=str(org_data.get("inn", "")),
+                bic=str(org_data.get("bic", "")),
+                account=str(org_data.get("account", "")),
+                owner=str(org_data.get("owner", ""))
+            )
 
             self._settings.organization = org
 
-            self._settings.account_name = str(self._data.get("account_name", ""))
             self._settings.boss_name = str(self._data.get("boss_name", ""))
+            self._settings.account_name = str(self._data.get("account_name", ""))
 
             raw_flag = self._data.get("first_launch_flag", True)
             self._settings.first_launch_flag = bool(raw_flag)
 
+            self._is_loaded = True
             return True
         except Exception:
+            self._is_loaded = False
             return False
 
     @property
@@ -106,6 +110,6 @@ class settings_manager(abstract_manager):
         self._settings = value
 
     @property
-    def data(self) -> list:
+    def data(self) -> dict:
         """Возвращает «сырые» данные JSON (нужно storage_manager)."""
         return self._data
