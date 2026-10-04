@@ -15,23 +15,13 @@ class nomenclature_model(entity_model):
     __group: group_model = None
     __range: range_model = None
 
-    def __init__(self, full_name: str = "", name: str = "", group: group_model = None, range: range_model = None) -> None:
-        """Инициализирует номенклатуру.
+    def __init__(self) -> None:
+        """Инициализирует экземпляр номенклатуры без параметров.
 
-        :param full_name: Полное наименование номенклатуры (до 255 символов).
-        :param name: Краткое наименование номенклатуры (до 50 символов).
-        :param group: Группа номенклатуры или None.
-        :param range: Единица измерения или None.
+        Все свойства (name, full_name, group, range) устанавливаются через
+        соответствующие сеттеры.
         """
         super().__init__()
-        if not name and full_name and isinstance(full_name, str):
-            name = full_name
-        if name != "":
-            self.name = name
-        if full_name != "":
-            self.full_name = full_name
-        self.group = group
-        self.range = range
 
     @property
     def full_name(self) -> str:
