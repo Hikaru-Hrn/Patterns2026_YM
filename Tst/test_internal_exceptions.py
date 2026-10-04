@@ -51,6 +51,13 @@ def test_valid_result_all_domain_exceptions_inherit_base_exception():
         assert issubclass(cls, base_exception)
 
 
+def _make_nomenclature(**kwargs):
+    nom = nomenclature_model()
+    for k, v in kwargs.items():
+        setattr(nom, k, v)
+    return nom
+
+
 @pytest.mark.parametrize(
     "factory",
     [
@@ -64,7 +71,7 @@ def test_valid_result_all_domain_exceptions_inherit_base_exception():
         lambda: warehouse_model("Склад", None),
         lambda: warehouse_model("Склад", 123),
         lambda: group_model(None),
-        lambda: nomenclature_model(name="Товар", full_name=None),
+        lambda: _make_nomenclature(name="Товар", full_name=None),
     ],
 )
 def test_invalid_result_no_builtin_exceptions(factory):
@@ -119,10 +126,10 @@ def test_valid_result_catch_all_domain_errors_via_base_exception():
         lambda: group_model(None),
         lambda: group_model("a" * 51),
         # nomenclature_model
-        lambda: nomenclature_model(name="Товар", full_name=None),
-        lambda: nomenclature_model(name="a" * 51),
-        lambda: nomenclature_model(name="Товар", group="Молочные"),
-        lambda: nomenclature_model(name="Товар", range="кг"),
+        lambda: _make_nomenclature(name="Товар", full_name=None),
+        lambda: _make_nomenclature(name="a" * 51),
+        lambda: _make_nomenclature(name="Товар", group="Молочные"),
+        lambda: _make_nomenclature(name="Товар", range="кг"),
     ]
 
     for factory in bad_cases:

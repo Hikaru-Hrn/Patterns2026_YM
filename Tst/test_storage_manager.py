@@ -118,8 +118,9 @@ def test_valid_result_storage_manager_unique_nomenclatures():
     <summary>Проверяет уникальность добавления номенклатурных позиций.</summary>
     <description>
     1. Создать группу и единицу измерения.
-    2. Добавить номенклатуру 'Мука'.
-    3. Попытаться добавить позицию с таким же наименованием 'Мука'.
+    2. Создать объекты номенклатуры без параметров в конструкторе.
+    3. Добавить номенклатуру 'Мука'.
+    4. Попытаться добавить позицию с таким же наименованием 'Мука'.
     </description>
     <expected>Дубликат отклонен, len(nomenclatures) == 1</expected>
     """
@@ -127,8 +128,17 @@ def test_valid_result_storage_manager_unique_nomenclatures():
     grp = group_model(name="Сырье")
     unit = range_model(name="кг", conversion_factor=1.0)
 
-    nom1 = nomenclature_model(name="Мука", full_name="Мука высший сорт", group=grp, range=unit)
-    nom2 = nomenclature_model(name="Мука", full_name="Мука первый сорт", group=grp, range=unit)
+    nom1 = nomenclature_model()
+    nom1.name = "Мука"
+    nom1.full_name = "Мука высший сорт"
+    nom1.group = grp
+    nom1.range = unit
+
+    nom2 = nomenclature_model()
+    nom2.name = "Мука"
+    nom2.full_name = "Мука первый сорт"
+    nom2.group = grp
+    nom2.range = unit
 
     assert sm.add_nomenclature(nom1) is True
     assert sm.add_nomenclature(nom2) is False
@@ -136,39 +146,40 @@ def test_valid_result_storage_manager_unique_nomenclatures():
 
 
 # =========================================================================
-# 3. Проверка методов convert и load
+# 3. Проверка методов формирования данных (convert и load)
 # =========================================================================
 
-def test_valid_result_storage_manager_load_success():
+def test_valid_result_storage_manager_convert_success():
     """
-    <summary>Проверяет загрузку и конвертацию данных через load().</summary>
+    <summary>Проверяет прямое формирование первичных данных через convert().</summary>
     <description>
-    1. Вызвать sm.load(_settings_path()).
-    2. Проверить успешность конвертации и заполнение списков.
+    1. Вызвать метод convert() у storage_manager.
+    2. Убедиться, что возвращено True и все списки заполнены.
     </description>
-    <expected>sm.is_loaded is True, все коллекции не пусты</expected>
+    <expected>convert() is True, is_loaded is True, все коллекции не пусты</expected>
     """
     sm = storage_manager()
-    sm.load(_settings_path())
+    res = sm.convert()
 
+    assert res is True
     assert sm.is_loaded is True
-    assert len(sm.ranges) > 0
-    assert len(sm.groups) > 0
-    assert len(sm.warehouses) > 0
-    assert len(sm.nomenclatures) > 0
+    assert len(sm.ranges) >= 4
+    assert len(sm.groups) >= 2
+    assert len(sm.warehouses) >= 2
+    assert len(sm.nomenclatures) >= 4
 
 
 def test_valid_result_storage_manager_convert_base_range_linked():
     """
     <summary>Проверяет связывание базовых единиц измерения при convert().</summary>
     <description>
-    1. Загрузить настройки из JSON.
+    1. Сформировать данные через convert().
     2. Найти единицу 'килограмм' и проверить, что ее base указывает на 'грамм'.
     </description>
     <expected>kg.base is not None, kg.base.name == 'грамм'</expected>
     """
     sm = storage_manager()
-    sm.load(_settings_path())
+    sm.convert()
 
     kg = sm._find_range_by_name("килограмм")
     assert kg is not None
@@ -180,56 +191,43 @@ def test_valid_result_storage_manager_convert_nomenclature_relations():
     """
     <summary>Проверяет установку связей номенклатуры с группой и единицей измерения.</summary>
     <description>
-    1. Загрузить настройки.
-    2. Найти номенклатуру 'Молоко'.
+    1. Сформировать данные через convert().
+    2. Найти номенклатуру 'Мука пшеничная'.
     3. Проверить, что ее свойства group и range являются объектами моделей.
     </description>
-    <expected>nom.group.name == 'Молочная продукция', nom.range.name == 'литр'</expected>
+    <expected>nom.group.name == 'Ингредиенты', nom.range.name == 'грамм'</expected>
     """
+    sm = storage_manager()
+    sm.convert()
+
+    nom = next((n for n in sm.nomenclatures if n.name == "Мука пшеничная"), None)
+    assert nom is not None
+    assert isinstance(nom.group, group_model)
+    assert nom.group.name == "Ингредиенты"
+    assert isinstance(nom.range, range_model)
+    assert nom.range.name == "грамм"
+
+
+def test_valid_result_storage_manager_load_success():
+    """
+    <summary>Проверяет вызов load() для запуска логики первого старта.</summary>
+    <description>
+    1. Загрузить настройки settings.json с first_launch_flag = True.
+    2. Вызвать sm.load(_settings_path()).
+    3. Проверить успешность формирования данных.
+    </description>
+    <expected>sm.is_loaded is True, данные созданы</expected>
+    """
+    settings_mgr = settings_manager()
+    settings_mgr.load(_settings_path())
+    settings_mgr.settings.first_launch_flag = True
+
     sm = storage_manager()
     sm.load(_settings_path())
 
-    nom = next((n for n in sm.nomenclatures if n.name == "Молоко"), None)
-    assert nom is not None
-    assert isinstance(nom.group, group_model)
-    assert nom.group.name == "Молочная продукция"
-    assert isinstance(nom.range, range_model)
-    assert nom.range.name == "литр"
-
-
-def test_invalid_result_storage_manager_convert_bad_data():
-    """
-    <summary>Проверяет поведение convert() при некорректных входных данных.</summary>
-    <description>
-    1. Установить _data в None или пустую строку.
-    2. Вызвать convert().
-    </description>
-    <expected>convert() возвращает False, is_loaded == False</expected>
-    """
-    sm = storage_manager()
-    sm._data = "not a dictionary"
-    res = sm.convert()
-
-    assert res is False
-    assert sm.is_loaded is False
-
-
-def test_invalid_result_storage_manager_convert_missing_group():
-    """
-    <summary>Проверяет обработку ситуации, когда для номенклатуры не найдена группа.</summary>
-    <description>
-    1. Передать структуру данных с номенклатурой, ссылающейся на несуществующую группу.
-    2. Вызвать convert().
-    </description>
-    <expected>convert() завершается ошибкой и возвращает False</expected>
-    """
-    sm = storage_manager()
-    sm._data = {
-        "ranges": [{"name": "шт", "conversion_factor": 1.0}],
-        "groups": [],
-        "nomenclature": [{"name": "Товар", "group": "Неизвестная группа", "range": "шт"}]
-    }
-    assert sm.convert() is False
+    assert sm.is_loaded is True
+    assert len(sm.ranges) > 0
+    assert len(sm.nomenclatures) > 0
 
 
 # =========================================================================
@@ -280,7 +278,7 @@ def test_valid_result_storage_manager_first_start_disabled():
     <description>
     1. Загрузить настройки и принудительно установить first_launch_flag = False.
     2. Вызвать first_start(_settings_path()).
-    3. Убедиться, что первичные данные не создаются.
+    3. Убедиться, что первичные данные не создаются повторно.
     </description>
     <expected>first_start() возвращает False, хранилища остаются пустыми</expected>
     """
