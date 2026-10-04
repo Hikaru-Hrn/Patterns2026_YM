@@ -122,61 +122,76 @@ class storage_manager(abstract_manager):
     # -------------------------------------------------------------------------
 
     def load(self, file_name: str = "") -> None:
-        """Загружает данные из settings_manager и выполняет конвертацию."""
-        mgr = settings_manager()
-        if not mgr.is_loaded:
-            mgr.load(file_name)
-
-        self._data = mgr.data
-        self._is_loaded = self.convert()
+        """Инициирует формирование первичных данных при первом старте."""
+        self.first_start(file_name)
 
     def convert(self) -> bool:
-        """Преобразует словарь self._data в экземпляры доменных моделей."""
+        """Формирует первичный набор доменных данных в памяти (реализация абстрактного метода).
+
+        Создает единицы измерения, склады, группы номенклатуры и номенклатурные позиции под рецепт.
+        Гарантирует уникальность каждого элемента.
+
+        :return: True, если данные успешно сформированы.
+        """
         try:
-            if not isinstance(self._data, dict):
-                return False
+            # --- Единицы измерения ---
+            unit_g = range_model("грамм", 1.0)
+            unit_kg = range_model("килограмм", 1000.0, unit_g)
+            unit_pcs = range_model("штука", 1.0)
+            unit_ml = range_model("миллилитр", 1.0)
 
-            # 1. Загрузка единиц измерения и установка базовых связей
-            ranges_data = self._data.get("ranges", [])
-            range_dict = {}
-            for item in ranges_data:
-                r = range_model(
-                    name=item["name"],
-                    conversion_factor=item.get("conversion_factor", item.get("conversation_factor", 1.0)),
-                    base=None
-                )
-                if self.add_range(r):
-                    range_dict[r.name] = r
+            self.add_range(unit_g)
+            self.add_range(unit_kg)
+            self.add_range(unit_pcs)
+            self.add_range(unit_ml)
 
-            # Вторым проходом связываем базовые единицы
-            for item in ranges_data:
-                base_name = item.get("base")
-                if base_name and item["name"] in range_dict and base_name in range_dict:
-                    range_dict[item["name"]].base = range_dict[base_name]
+            # --- Склады ---
+            wh_main = warehouse_model("Основной склад", "г. Москва, ул. Складская, 1")
+            wh_kitchen = warehouse_model("Кухня/Производство", "г. Москва, Цех 2")
+            self.add_warehouse(wh_main)
+            self.add_warehouse(wh_kitchen)
 
-            # 2. Загрузка групп номенклатуры
-            for item in self._data.get("groups", []):
-                self.add_group(group_model(name=item["name"]))
+            # --- Группы ---
+            grp_ingredients = group_model("Ингредиенты")
+            grp_dishes = group_model("Готовые блюда")
+            self.add_group(grp_ingredients)
+            self.add_group(grp_dishes)
 
-            # 3. Загрузка складов
-            for item in self._data.get("warehouses", self._data.get("warehouse", [])):
-                self.add_warehouse(warehouse_model(name=item["name"], address=item.get("address", "")))
+            # --- Номенклатура (создание через свойства без логики в конструкторе) ---
+            nom_flour = nomenclature_model()
+            nom_flour.name = "Мука пшеничная"
+            nom_flour.full_name = "Мука пшеничная высший сорт"
+            nom_flour.group = grp_ingredients
+            nom_flour.range = unit_g
+            self.add_nomenclature(nom_flour)
 
-            # 4. Загрузка номенклатуры с поиском связанных объектов
-            for item in self._data.get("nomenclature", self._data.get("nomenclatures", [])):
-                gr = self._find_group_by_name(item.get("group", ""))
-                rn = self._find_range_by_name(item.get("range", ""))
+            nom_butter = nomenclature_model()
+            nom_butter.name = "Сливочное масло"
+            nom_butter.full_name = "Сливочное масло 82.5%"
+            nom_butter.group = grp_ingredients
+            nom_butter.range = unit_g
+            self.add_nomenclature(nom_butter)
 
-                if gr is None or rn is None:
-                    raise arguments_exception("nomenclature", f"Не найдена группа или единица для '{item.get('name')}'")
+            nom_sugar = nomenclature_model()
+            nom_sugar.name = "Сахар"
+            nom_sugar.full_name = "Сахар белый кристаллический"
+            nom_sugar.group = grp_ingredients
+            nom_sugar.range = unit_g
+            self.add_nomenclature(nom_sugar)
 
-                nom = nomenclature_model(
-                    name=item["name"],
-                    full_name=item.get("full_name", item["name"]),
-                    group=gr,
-                    range=rn
-                )
-                self.add_nomenclature(nom)
+            nom_egg = nomenclature_model()
+            nom_egg.name = "Яйцо куриное"
+            nom_egg.full_name = "Яйцо куриное категории С0"
+            nom_egg.group = grp_ingredients
+            nom_egg.range = unit_pcs
+            self.add_nomenclature(nom_egg)
+
+            nom_cookie = nomenclature_model()
+            nom_cookie.name = "Песочное печенье"
+            nom_cookie.full_name = "Песочное печенье классическое"
+            nom_cookie.group = grp_dishes
+            nom_cookie.range = unit_pcs
+            self.add_nomenclature(nom_cookie)
 
             self._is_loaded = True
             return True
@@ -191,12 +206,15 @@ class storage_manager(abstract_manager):
     def first_start(self, file_name: str = "") -> bool:
         """Формирует первичный набор справочников при первом старте.
 
-        Если в настройках first_launch_flag == True:
-        - Создаются единицы измерения (грамм, килограмм, штука, миллилитр);
-        - Создаются склады (Основной склад, Кухня);
-        - Создаются группы (Ингредиенты, Готовые блюда);
-        - Создается базовая номенклатура для технологической карты рецепта;
-        - Флаг first_launch_flag переключается в False.
+        Проверяет флаг first_launch_flag в settings_manager.
+        Если True:
+        - Формирует первичные данные (вызывает convert());
+        - Переключает флаг first_launch_flag в False.
+        Если False:
+        - Повторное формирование блокируется, возвращает False.
+
+        :param file_name: Путь к файлу настроек (опционально).
+        :return: True, если первичные данные успешно сформированы.
         """
         mgr = settings_manager()
         if not mgr.is_loaded:
@@ -206,65 +224,10 @@ class storage_manager(abstract_manager):
         if not mgr.settings.first_launch_flag:
             return False
 
-        # --- Единицы измерения ---
-        unit_g = range_model(name="грамм", conversion_factor=1.0, base=None)
-        unit_kg = range_model(name="килограмм", conversion_factor=1000.0, base=unit_g)
-        unit_pcs = range_model(name="штука", conversion_factor=1.0, base=None)
-        unit_ml = range_model(name="миллилитр", conversion_factor=1.0, base=None)
-
-        self.add_range(unit_g)
-        self.add_range(unit_kg)
-        self.add_range(unit_pcs)
-        self.add_range(unit_ml)
-
-        # --- Склады ---
-        wh_main = warehouse_model(name="Основной склад", address="г. Москва, ул. Складская, 1")
-        wh_kitchen = warehouse_model(name="Кухня/Производство", address="г. Москва, Цех 2")
-        self.add_warehouse(wh_main)
-        self.add_warehouse(wh_kitchen)
-
-        # --- Группы ---
-        grp_ingredients = group_model(name="Ингредиенты")
-        grp_dishes = group_model(name="Готовые блюда")
-        self.add_group(grp_ingredients)
-        self.add_group(grp_dishes)
-
-        # --- Номенклатура для рецепта печенья ---
-        self.add_nomenclature(nomenclature_model(
-            name="Мука пшеничная",
-            full_name="Мука пшеничная высший сорт",
-            group=grp_ingredients,
-            range=unit_g
-        ))
-        self.add_nomenclature(nomenclature_model(
-            name="Сливочное масло",
-            full_name="Сливочное масло 82.5%",
-            group=grp_ingredients,
-            range=unit_g
-        ))
-        self.add_nomenclature(nomenclature_model(
-            name="Сахар",
-            full_name="Сахар белый кристаллический",
-            group=grp_ingredients,
-            range=unit_g
-        ))
-        self.add_nomenclature(nomenclature_model(
-            name="Яйцо куриное",
-            full_name="Яйцо куриное категории С0",
-            group=grp_ingredients,
-            range=unit_pcs
-        ))
-        self.add_nomenclature(nomenclature_model(
-            name="Песочное печенье",
-            full_name="Песочное печенье классическое",
-            group=grp_dishes,
-            range=unit_pcs
-        ))
-
-        # Сбрасываем флаг первого запуска
-        mgr.settings.first_launch_flag = False
-        self._is_loaded = True
-        return True
+        res = self.convert()
+        if res:
+            mgr.settings.first_launch_flag = False
+        return res
 
     # -------------------------------------------------------------------------
     # Свойства доступа (геттеры)
