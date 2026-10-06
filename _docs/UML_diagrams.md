@@ -102,6 +102,7 @@ classDiagram
         -int __full_name_max_length
         -group_model __group
         -range_model __range
+        +__init__() void
         +full_name() str
         +group() group_model
         +range() range_model
@@ -229,7 +230,7 @@ sequenceDiagram
         Store->>Models: range_model("килограмм", 1000.0, base=грамм)
         Store->>Models: warehouse_model("Основной склад", "...")
         Store->>Models: group_model("Ингредиенты")
-        Store->>Models: nomenclature_model("Мука", ..., group, range)
+        Store->>Models: nomenclature_model() + setters (Мука, ...)
         Store->>Store: add_range(), add_warehouse(), add_group(), add_nomenclature()
         Store->>Sett: settings.first_launch_flag = False
         Store-->>Client: True (первичные данные созданы)
