@@ -214,12 +214,11 @@ def test_valid_result_nomenclature_model_creation():
     group = group_model("Молочная продукция")
     unit = range_model("грамм")
 
-    nomenclature = nomenclature_model(
-        "Молоко пастеризованное 3.2%",
-        "Молоко",
-        group,
-        unit,
-    )
+    nomenclature = nomenclature_model()
+    nomenclature.name = "Молоко"
+    nomenclature.full_name = "Молоко пастеризованное 3.2%"
+    nomenclature.group = group
+    nomenclature.range = unit
 
     assert nomenclature.name == "Молоко"
     assert nomenclature.full_name == "Молоко пастеризованное 3.2%"
@@ -234,10 +233,9 @@ def test_valid_result_nomenclature_model_without_group_and_range():
     Ожидаемый результат:
     group и range равны None.
     """
-    nomenclature = nomenclature_model(
-        "Молоко пастеризованное",
-        "Молоко",
-    )
+    nomenclature = nomenclature_model()
+    nomenclature.name = "Молоко"
+    nomenclature.full_name = "Молоко пастеризованное"
 
     assert nomenclature.full_name == "Молоко пастеризованное"
     assert nomenclature.name == "Молоко"
@@ -252,10 +250,9 @@ def test_valid_result_nomenclature_model_full_name_change():
     Ожидаемый результат:
     новое значение сохраняется в full_name.
     """
-    nomenclature = nomenclature_model(
-        "Старое наименование",
-        "Молоко",
-    )
+    nomenclature = nomenclature_model()
+    nomenclature.name = "Молоко"
+    nomenclature.full_name = "Старое наименование"
 
     nomenclature.full_name = "Новое полное наименование"
 
@@ -272,11 +269,9 @@ def test_valid_result_nomenclature_model_group_change():
     group1 = group_model("Молочная продукция")
     group2 = group_model("Мясная продукция")
 
-    nomenclature = nomenclature_model(
-        "Молоко",
-        "Молоко",
-        group1,
-    )
+    nomenclature = nomenclature_model()
+    nomenclature.name = "Молоко"
+    nomenclature.group = group1
 
     nomenclature.group = group2
 
@@ -293,12 +288,9 @@ def test_valid_result_nomenclature_model_range_change():
     gram = range_model("грамм")
     kilogram = range_model("килограмм", 1000, gram)
 
-    nomenclature = nomenclature_model(
-        "Молоко",
-        "Молоко",
-        None,
-        gram,
-    )
+    nomenclature = nomenclature_model()
+    nomenclature.name = "Молоко"
+    nomenclature.range = gram
 
     nomenclature.range = kilogram
 
@@ -314,7 +306,8 @@ def test_invalid_result_nomenclature_model_full_name_type(value):
     при передаче значения, не являющегося строкой,
     возникает arguments_exception.
     """
-    nomenclature = nomenclature_model(name="Тест")
+    nomenclature = nomenclature_model()
+    nomenclature.name = "Тест"
 
     with pytest.raises(arguments_exception):
         nomenclature.full_name = value
@@ -328,7 +321,8 @@ def test_invalid_result_nomenclature_model_full_name_long():
     строка длиной более 255 символов вызывает
     max_length_exception.
     """
-    nomenclature = nomenclature_model(name="Тест")
+    nomenclature = nomenclature_model()
+    nomenclature.name = "Тест"
 
     with pytest.raises(max_length_exception):
         nomenclature.full_name = "А" * 256
@@ -341,7 +335,8 @@ def test_valid_result_nomenclature_model_full_name_255():
     Ожидаемый результат:
     строка длиной ровно 255 символов принимается.
     """
-    nomenclature = nomenclature_model(name = "A")
+    nomenclature = nomenclature_model()
+    nomenclature.name = "A"
 
     nomenclature.full_name = "А" * 255
 
@@ -357,7 +352,8 @@ def test_invalid_result_nomenclature_model_group_type(value):
     значение, не являющееся group_model или None,
     вызывает arguments_exception.
     """
-    nomenclature = nomenclature_model(name = "Test")
+    nomenclature = nomenclature_model()
+    nomenclature.name = "Test"
 
     with pytest.raises(arguments_exception):
         nomenclature.group = value
@@ -372,7 +368,8 @@ def test_invalid_result_nomenclature_model_range_type(value):
     значение, не являющееся range_model или None,
     вызывает arguments_exception.
     """
-    nomenclature = nomenclature_model(name="Тест")
+    nomenclature = nomenclature_model()
+    nomenclature.name = "Тест"
 
     with pytest.raises(arguments_exception):
         nomenclature.range = value

@@ -4,8 +4,10 @@ from Src.Models.range_model import range_model
 from Src.Core.exception import arguments_exception, max_length_exception
 
 class nomenclature_model(entity_model):
-    """
+    """Модель номенклатурной позиции (товара, ингредиента или блюда).
 
+    Содержит краткое наименование (до 50 символов), полное наименование (до 255 символов),
+    ссылку на группу номенклатуры и единицу измерения.
     """
 
     __full_name: str = ""
@@ -13,19 +15,13 @@ class nomenclature_model(entity_model):
     __group: group_model = None
     __range: range_model = None
 
-    def __init__(self, name: str = "", full_name: str = "", group: group_model = None, range: range_model = None) -> None:
-        """Инициализирует номенклатуру
+    def __init__(self) -> None:
+        """Инициализирует экземпляр номенклатуры без параметров.
 
-        :param name: Краткое наименование номенклатуры
-        :param full_name: Полное наименование номенклатуры
-        :param group: Группа номенклатуры или None
-        :param range: Единица измерения или None
+        Все свойства (name, full_name, group, range) устанавливаются через
+        соответствующие сеттеры.
         """
         super().__init__()
-        self.name = name
-        self.full_name = full_name
-        self.group = group
-        self.range = range
 
     @property
     def full_name(self) -> str:

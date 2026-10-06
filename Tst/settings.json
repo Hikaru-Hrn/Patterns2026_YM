@@ -1,0 +1,12 @@
+{
+    "organization": {
+        "name": "ООО Ромашка",
+        "inn": "7707083893",
+        "bic": "044525225",
+        "account": "40702810900000000000",
+        "owner": "ООО"
+    },
+    "boss_name": "Иванов И. И",
+    "account_name": "Семёнов А. Г.",
+    "first_launch_flag": true
+}
