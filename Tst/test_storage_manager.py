@@ -7,6 +7,7 @@ from Src.Logics.storage_manager import storage_manager
 from Src.Models.group_model import group_model
 from Src.Models.nomenclature_model import nomenclature_model
 from Src.Models.range_model import range_model
+from Src.Models.recipe_model import recipe_model
 from Src.Models.warehouse_model import warehouse_model
 
 
@@ -23,6 +24,7 @@ def reset_storage():
     sm._ranges = []
     sm._nomenclatures = []
     sm._warehouses = []
+    sm._recipes = []
     sm._is_loaded = False
     sm._data = {}
 
@@ -143,6 +145,28 @@ def test_valid_result_storage_manager_unique_nomenclatures():
     assert sm.add_nomenclature(nom1) is True
     assert sm.add_nomenclature(nom2) is False
     assert len(sm.nomenclatures) == 1
+
+
+def test_valid_result_storage_manager_unique_recipes():
+    """
+    <summary>Проверяет уникальность добавления технологических карт (рецептов).</summary>
+    <description>
+    1. Создать рецепт 'Песочное тесто'.
+    2. Попытаться повторно добавить рецепт с тем же наименованием.
+    </description>
+    <expected>Дубликат отклонен, len(recipes) == 1</expected>
+    """
+    sm = storage_manager()
+    grp = group_model.create("Полуфабрикаты")
+    unit = range_model.create("грамм", 1.0)
+    dish = nomenclature_model.create("Тесто", "Песочное тесто", grp, unit)
+
+    rec1 = recipe_model.create(name="Песочное тесто", dish=dish)
+    rec2 = recipe_model.create(name="Песочное тесто", dish=dish)
+
+    assert sm.add_recipe(rec1) is True
+    assert sm.add_recipe(rec2) is False
+    assert len(sm.recipes) == 1
 
 
 # =========================================================================
@@ -314,3 +338,64 @@ def test_valid_result_storage_manager_first_start_recipe_linked():
     assert flour is not None
     assert flour.group.name == "Ингредиенты"
     assert flour.range.name == "грамм"
+
+
+def test_valid_result_storage_manager_first_start_generates_recipes():
+    """
+    <summary>Проверяет генерацию технологических карт (рецептов) при первом старте.</summary>
+    <description>
+    1. Запустить first_start с флагом True.
+    2. Проверить наличие рецепта полуфабриката ('Песочное тесто')
+       и рецепта готового блюда с упаковкой ('Песочное печенье в упаковке').
+    </description>
+    <expected>Оба рецепта сформированы и зарегистрированы в хранилище.</expected>
+    """
+    settings_mgr = settings_manager()
+    settings_mgr.load(_settings_path())
+    settings_mgr.settings.first_launch_flag = True
+
+    sm = storage_manager()
+    sm.first_start(_settings_path())
+
+    assert len(sm.recipes) >= 2
+    rec_names = [r.name for r in sm.recipes]
+    assert "Песочное тесто" in rec_names
+    assert "Песочное печенье в упаковке" in rec_names
+
+    # Проверяем, что в рецепте готового блюда есть полуфабрикат и упаковка
+    rec_cookie = sm._find_recipe_by_name("Песочное печенье в упаковке")
+    assert rec_cookie is not None
+    row_noms = [r.nomenclature.name for r in rec_cookie.rows]
+    assert "Песочное тесто" in row_noms
+    assert "Коробка крафтовая" in row_noms
+
+
+def test_valid_result_storage_manager_first_start_recipes_weight_calculation():
+    """
+    <summary>Проверяет вычисление веса Брутто и Нетто для рецептов первого старта.</summary>
+    <description>
+    1. Запустить first_start с флагом True.
+    2. Проверить веса рецепта полуфабриката: Мука(250/250) + Масло(150/150) + Сахар(100/100) + Яйцо(60/50).
+    3. Проверить веса рецепта печенья в упаковке: Тесто(560/500) + Коробка(40/40).
+    </description>
+    <expected>
+    Тесто: брутто == 560, нетто == 550.
+    Печенье в коробке: брутто == 600, нетто == 540.
+    </expected>
+    """
+    settings_mgr = settings_manager()
+    settings_mgr.load(_settings_path())
+    settings_mgr.settings.first_launch_flag = True
+
+    sm = storage_manager()
+    sm.first_start(_settings_path())
+
+    rec_dough = sm._find_recipe_by_name("Песочное тесто")
+    assert rec_dough is not None
+    assert rec_dough.gross_weight == 560.0
+    assert rec_dough.net_weight == 550.0
+
+    rec_cookie = sm._find_recipe_by_name("Песочное печенье в упаковке")
+    assert rec_cookie is not None
+    assert rec_cookie.gross_weight == 600.0
+    assert rec_cookie.net_weight == 540.0
