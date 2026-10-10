@@ -12,4 +12,16 @@ class group_model(entity_model):
         :param name: Наименование группы (до 50 символов).
         """
         super().__init__()
-        self.name = name
+        if name != "":
+            self.name = name
+
+    @staticmethod
+    def create(name: str) -> "group_model":
+        """Фабричный метод создания группы номенклатуры.
+
+        :param name: Наименование группы (до 50 символов).
+        :return: Заполненный экземпляр group_model.
+        """
+        group = group_model()
+        group.name = name
+        return group

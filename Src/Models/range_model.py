@@ -21,9 +21,25 @@ class range_model(entity_model):
         :param base: Базовая единица измерения
         """
         super().__init__()
-        self.name = name
+        if name != "":
+            self.name = name
         self.base = base
         self.conversion_factor = conversion_factor
+
+    @staticmethod
+    def create(name: str, conversion_factor: float = 1.0, base: "range_model" = None) -> "range_model":
+        """Фабричный метод создания единицы измерения.
+
+        :param name: Наименование единицы измерения.
+        :param conversion_factor: Коэффициент пересчёта к базовой единице.
+        :param base: Базовая единица измерения или None.
+        :return: Заполненный экземпляр range_model.
+        """
+        unit = range_model()
+        unit.name = name
+        unit.conversion_factor = conversion_factor
+        unit.base = base
+        return unit
 
     @property
     def base(self) -> "range_model":
