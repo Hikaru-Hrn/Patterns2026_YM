@@ -5,13 +5,16 @@ from Src.Logics.settings_manager import settings_manager
 from Src.Models.group_model import group_model
 from Src.Models.nomenclature_model import nomenclature_model
 from Src.Models.range_model import range_model
+from Src.Models.recipe_model import recipe_model
+from Src.Models.recipe_row_model import recipe_row_model
 from Src.Models.warehouse_model import warehouse_model
 
 
 class storage_manager(abstract_manager):
     """Singleton-хранилище доменных справочников в оперативной памяти.
 
-    Хранит списки: групп номенклатуры, единиц измерения, номенклатуры и складов.
+    Хранит списки: групп номенклатуры, единиц измерения, номенклатуры,
+    складов и технологических карт (рецептов).
     Гарантирует уникальность каждого элемента по его имени или уникальному коду.
     """
 
@@ -34,6 +37,7 @@ class storage_manager(abstract_manager):
         self._ranges: list = []
         self._nomenclatures: list = []
         self._warehouses: list = []
+        self._recipes: list = []
 
         self._data: dict = {}
         self._is_loaded: bool = False
@@ -99,6 +103,14 @@ class storage_manager(abstract_manager):
             return True
         return False
 
+    def add_recipe(self, item: recipe_model) -> bool:
+        """Добавляет технологическую карту (рецепт) с проверкой уникальности."""
+        validator.validate(item, recipe_model)
+        if self._is_unique(self._recipes, item):
+            self._recipes.append(item)
+            return True
+        return False
+
     # -------------------------------------------------------------------------
     # Поиск по имени для связывания моделей между собой
     # -------------------------------------------------------------------------
@@ -117,6 +129,13 @@ class storage_manager(abstract_manager):
                 return r
         return None
 
+    def _find_recipe_by_name(self, name: str) -> recipe_model:
+        """Ищет объект технологической карты по наименованию."""
+        for rec in self._recipes:
+            if rec.name == name:
+                return rec
+        return None
+
     # -------------------------------------------------------------------------
     # Загрузка и конвертация (полиморфизм abstract_manager)
     # -------------------------------------------------------------------------
@@ -126,72 +145,128 @@ class storage_manager(abstract_manager):
         self.first_start(file_name)
 
     def convert(self) -> bool:
-        """Формирует первичный набор доменных данных в памяти (реализация абстрактного метода).
+        """Формирует первичный набор доменных данных в памяти через фабричные методы.
 
-        Создает единицы измерения, склады, группы номенклатуры и номенклатурные позиции под рецепт.
+        Создает единицы измерения, склады, группы номенклатуры, номенклатурные
+        позиции и технологические карты (рецепты) с полуфабрикатами и упаковкой.
         Гарантирует уникальность каждого элемента.
 
         :return: True, если данные успешно сформированы.
         """
         try:
-            # --- Единицы измерения ---
-            unit_g = range_model("грамм", 1.0)
-            unit_kg = range_model("килограмм", 1000.0, unit_g)
-            unit_pcs = range_model("штука", 1.0)
-            unit_ml = range_model("миллилитр", 1.0)
+            # --- 1. Единицы измерения (через фабричный метод create) ---
+            unit_g = range_model.create("грамм", 1.0)
+            unit_kg = range_model.create("килограмм", 1000.0, unit_g)
+            unit_pcs = range_model.create("штука", 1.0)
+            unit_ml = range_model.create("миллилитр", 1.0)
 
             self.add_range(unit_g)
             self.add_range(unit_kg)
             self.add_range(unit_pcs)
             self.add_range(unit_ml)
 
-            # --- Склады ---
-            wh_main = warehouse_model("Основной склад", "г. Москва, ул. Складская, 1")
-            wh_kitchen = warehouse_model("Кухня/Производство", "г. Москва, Цех 2")
+            # --- 2. Склады (через фабричный метод create) ---
+            wh_main = warehouse_model.create("Основной склад", "г. Москва, ул. Складская, 1")
+            wh_kitchen = warehouse_model.create("Кухня/Производство", "г. Москва, Цех 2")
             self.add_warehouse(wh_main)
             self.add_warehouse(wh_kitchen)
 
-            # --- Группы ---
-            grp_ingredients = group_model("Ингредиенты")
-            grp_dishes = group_model("Готовые блюда")
+            # --- 3. Группы номенклатуры (через фабричный метод create) ---
+            grp_ingredients = group_model.create("Ингредиенты")
+            grp_semi = group_model.create("Полуфабрикаты")
+            grp_dishes = group_model.create("Готовые блюда")
+            grp_packaging = group_model.create("Тара и упаковка")
+
             self.add_group(grp_ingredients)
+            self.add_group(grp_semi)
             self.add_group(grp_dishes)
+            self.add_group(grp_packaging)
 
-            # --- Номенклатура (создание через свойства без логики в конструкторе) ---
-            nom_flour = nomenclature_model()
-            nom_flour.name = "Мука пшеничная"
-            nom_flour.full_name = "Мука пшеничная высший сорт"
-            nom_flour.group = grp_ingredients
-            nom_flour.range = unit_g
+            # --- 4. Номенклатура (через фабричный метод create) ---
+            # Сырьевые ингредиенты
+            nom_flour = nomenclature_model.create(
+                "Мука пшеничная",
+                "Мука пшеничная высший сорт",
+                grp_ingredients,
+                unit_g
+            )
+            nom_butter = nomenclature_model.create(
+                "Сливочное масло",
+                "Сливочное масло 82.5%",
+                grp_ingredients,
+                unit_g
+            )
+            nom_sugar = nomenclature_model.create(
+                "Сахар",
+                "Сахар белый кристаллический",
+                grp_ingredients,
+                unit_g
+            )
+            nom_egg = nomenclature_model.create(
+                "Яйцо куриное",
+                "Яйцо куриное категории С0",
+                grp_ingredients,
+                unit_pcs
+            )
+
+            # Полуфабрикат
+            nom_dough = nomenclature_model.create(
+                "Песочное тесто",
+                "Песочное тесто (полуфабрикат кулинарный)",
+                grp_semi,
+                unit_g
+            )
+
+            # Тара и упаковка
+            nom_box = nomenclature_model.create(
+                "Коробка крафтовая",
+                "Коробка крафтовая для кондитерских изделий",
+                grp_packaging,
+                unit_pcs
+            )
+
+            # Готовая продукция
+            nom_cookies_packaged = nomenclature_model.create(
+                "Песочное печенье",
+                "Песочное печенье в крафтовой упаковке",
+                grp_dishes,
+                unit_pcs
+            )
+
             self.add_nomenclature(nom_flour)
-
-            nom_butter = nomenclature_model()
-            nom_butter.name = "Сливочное масло"
-            nom_butter.full_name = "Сливочное масло 82.5%"
-            nom_butter.group = grp_ingredients
-            nom_butter.range = unit_g
             self.add_nomenclature(nom_butter)
-
-            nom_sugar = nomenclature_model()
-            nom_sugar.name = "Сахар"
-            nom_sugar.full_name = "Сахар белый кристаллический"
-            nom_sugar.group = grp_ingredients
-            nom_sugar.range = unit_g
             self.add_nomenclature(nom_sugar)
-
-            nom_egg = nomenclature_model()
-            nom_egg.name = "Яйцо куриное"
-            nom_egg.full_name = "Яйцо куриное категории С0"
-            nom_egg.group = grp_ingredients
-            nom_egg.range = unit_pcs
             self.add_nomenclature(nom_egg)
+            self.add_nomenclature(nom_dough)
+            self.add_nomenclature(nom_box)
+            self.add_nomenclature(nom_cookies_packaged)
 
-            nom_cookie = nomenclature_model()
-            nom_cookie.name = "Песочное печенье"
-            nom_cookie.full_name = "Песочное печенье классическое"
-            nom_cookie.group = grp_dishes
-            nom_cookie.range = unit_pcs
-            self.add_nomenclature(nom_cookie)
+            # --- 5. Технологические карты / Рецепты (через фабричный метод create) ---
+            # Рецепт 1: Полуфабрикат «Песочное тесто»
+            recipe_dough = recipe_model.create(
+                name="Песочное тесто",
+                dish=nom_dough,
+                rows=[
+                    recipe_row_model.create(nom_flour, unit_g, gross_weight=250.0, net_weight=250.0),
+                    recipe_row_model.create(nom_butter, unit_g, gross_weight=150.0, net_weight=150.0),
+                    recipe_row_model.create(nom_sugar, unit_g, gross_weight=100.0, net_weight=100.0),
+                    recipe_row_model.create(nom_egg, unit_pcs, gross_weight=60.0, net_weight=50.0),
+                ],
+                comments="Приготовление пластичного песочного теста"
+            )
+            self.add_recipe(recipe_dough)
+
+            # Рецепт 2: Готовое блюдо с полуфабрикатом и упаковкой
+            recipe_cookies = recipe_model.create(
+                name="Песочное печенье в упаковке",
+                dish=nom_cookies_packaged,
+                rows=[
+                    recipe_row_model.create(nom_dough, unit_g, gross_weight=560.0, net_weight=500.0),
+                    recipe_row_model.create(nom_box, unit_pcs, gross_weight=40.0, net_weight=40.0),
+                ],
+                comments="Выпекание печенья из полуфабриката и упаковка в крафтовую коробку"
+            )
+            self.add_recipe(recipe_cookies)
 
             self._is_loaded = True
             return True
@@ -257,3 +332,8 @@ class storage_manager(abstract_manager):
     def nomenclatures(self) -> list:
         """Возвращает список зарегистрированных позиций номенклатуры."""
         return self._nomenclatures
+
+    @property
+    def recipes(self) -> list:
+        """Возвращает список зарегистрированных технологических карт (рецептов)."""
+        return self._recipes
