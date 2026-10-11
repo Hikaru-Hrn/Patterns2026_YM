@@ -41,6 +41,27 @@ class range_model(entity_model):
         unit.base = base
         return unit
 
+    @staticmethod
+    def create_gram() -> "range_model":
+        """Фабричный метод создания базовой единицы измерения 'грамм'."""
+        return range_model.create("грамм", 1.0, None)
+
+    @staticmethod
+    def create_kilogram(base: "range_model" = None) -> "range_model":
+        """Фабричный метод создания единицы измерения 'килограмм'."""
+        base_unit = base if base is not None else range_model.create_gram()
+        return range_model.create("килограмм", 1000.0, base_unit)
+
+    @staticmethod
+    def create_piece() -> "range_model":
+        """Фабричный метод создания штучной единицы измерения 'штука'."""
+        return range_model.create("штука", 1.0, None)
+
+    @staticmethod
+    def create_milliliter() -> "range_model":
+        """Фабричный метод создания объемной единицы измерения 'миллилитр'."""
+        return range_model.create("миллилитр", 1.0, None)
+
     @property
     def base(self) -> "range_model":
         """Возвращает базовую единицу измерения"""
