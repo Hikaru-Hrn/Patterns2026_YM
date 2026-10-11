@@ -40,11 +40,11 @@ def reset_storage():
 
 def test_valid_result_storage_manager_singleton():
     """
-    <summary>Проверяет работу шаблона Singleton для класса storage_manager.</summary>
-    <description>
+    Проверяет работу шаблона Singleton для класса storage_manager.
+
     1. Получить два экземпляра storage_manager через вызов конструктора.
     2. Убедиться, что обе переменные ссылаются на один и тот же объект в памяти.
-    </description>
+
     <expected>sm1 is sm2</expected>
     """
     sm1 = storage_manager()
@@ -56,14 +56,14 @@ def test_valid_result_storage_manager_singleton():
 # 2. Проверка уникальности элементов
 # =========================================================================
 
-def test_valid_result_storage_manager_unique_warehouses():
+def test_valid_result_storage_manager_add_warehouse_unique():
     """
-    <summary>Проверяет уникальность добавления складов в хранилище.</summary>
-    <description>
+    Проверяет уникальность добавления складов методом add_warehouse.
+
     1. Добавить склад 'Основной склад'.
     2. Попытаться добавить второй склад с тем же именем.
     3. Убедиться, что второй вызов возвращает False и в хранилище только 1 элемент.
-    </description>
+
     <expected>Первый добавлен, дубликат отклонен, len(warehouses) == 1</expected>
     """
     sm = storage_manager()
@@ -79,13 +79,13 @@ def test_valid_result_storage_manager_unique_warehouses():
     assert sm.warehouses[0].address == "ул. Ленина, 1"
 
 
-def test_valid_result_storage_manager_unique_ranges():
+def test_valid_result_storage_manager_add_range_unique():
     """
-    <summary>Проверяет уникальность добавления единиц измерения.</summary>
-    <description>
+    Проверяет уникальность добавления единиц измерения методом add_range.
+
     1. Добавить единицу измерения 'грамм'.
     2. Попытаться добавить дубликат с тем же именем.
-    </description>
+
     <expected>Дубликат отклонен, в списке ranges ровно 1 элемент</expected>
     """
     sm = storage_manager()
@@ -97,13 +97,13 @@ def test_valid_result_storage_manager_unique_ranges():
     assert len(sm.ranges) == 1
 
 
-def test_valid_result_storage_manager_unique_groups():
+def test_valid_result_storage_manager_add_group_unique():
     """
-    <summary>Проверяет уникальность добавления групп номенклатуры.</summary>
-    <description>
+    Проверяет уникальность добавления групп номенклатуры методом add_group.
+
     1. Добавить группу номенклатуры 'Ингредиенты'.
     2. Попытаться добавить группу с тем же наименованием.
-    </description>
+
     <expected>Дубликат отклонен, len(groups) == 1</expected>
     """
     sm = storage_manager()
@@ -115,15 +115,15 @@ def test_valid_result_storage_manager_unique_groups():
     assert len(sm.groups) == 1
 
 
-def test_valid_result_storage_manager_unique_nomenclatures():
+def test_valid_result_storage_manager_add_nomenclature_unique():
     """
-    <summary>Проверяет уникальность добавления номенклатурных позиций.</summary>
-    <description>
+    Проверяет уникальность добавления номенклатурных позиций методом add_nomenclature.
+
     1. Создать группу и единицу измерения.
     2. Создать объекты номенклатуры без параметров в конструкторе.
     3. Добавить номенклатуру 'Мука'.
     4. Попытаться добавить позицию с таким же наименованием 'Мука'.
-    </description>
+
     <expected>Дубликат отклонен, len(nomenclatures) == 1</expected>
     """
     sm = storage_manager()
@@ -147,13 +147,13 @@ def test_valid_result_storage_manager_unique_nomenclatures():
     assert len(sm.nomenclatures) == 1
 
 
-def test_valid_result_storage_manager_unique_recipes():
+def test_valid_result_storage_manager_add_recipe_unique():
     """
-    <summary>Проверяет уникальность добавления технологических карт (рецептов).</summary>
-    <description>
-    1. Создать рецепт 'Песочное тесто'.
+    Проверяет уникальность добавления технологических карт методом add_recipe.
+
+    1. Создать технологическую карту 'Песочное тесто'.
     2. Попытаться повторно добавить рецепт с тем же наименованием.
-    </description>
+
     <expected>Дубликат отклонен, len(recipes) == 1</expected>
     """
     sm = storage_manager()
@@ -175,11 +175,11 @@ def test_valid_result_storage_manager_unique_recipes():
 
 def test_valid_result_storage_manager_convert_success():
     """
-    <summary>Проверяет прямое формирование первичных данных через convert().</summary>
-    <description>
+    Проверяет прямое формирование первичных данных через convert().
+
     1. Вызвать метод convert() у storage_manager.
     2. Убедиться, что возвращено True и все списки заполнены.
-    </description>
+
     <expected>convert() is True, is_loaded is True, все коллекции не пусты</expected>
     """
     sm = storage_manager()
@@ -191,15 +191,16 @@ def test_valid_result_storage_manager_convert_success():
     assert len(sm.groups) >= 2
     assert len(sm.warehouses) >= 2
     assert len(sm.nomenclatures) >= 4
+    assert len(sm.recipes) >= 2
 
 
 def test_valid_result_storage_manager_convert_base_range_linked():
     """
-    <summary>Проверяет связывание базовых единиц измерения при convert().</summary>
-    <description>
+    Проверяет связывание базовых единиц измерения при convert().
+
     1. Сформировать данные через convert().
     2. Найти единицу 'килограмм' и проверить, что ее base указывает на 'грамм'.
-    </description>
+
     <expected>kg.base is not None, kg.base.name == 'грамм'</expected>
     """
     sm = storage_manager()
@@ -213,12 +214,12 @@ def test_valid_result_storage_manager_convert_base_range_linked():
 
 def test_valid_result_storage_manager_convert_nomenclature_relations():
     """
-    <summary>Проверяет установку связей номенклатуры с группой и единицей измерения.</summary>
-    <description>
+    Проверяет установку связей номенклатуры с группой и единицей измерения.
+
     1. Сформировать данные через convert().
     2. Найти номенклатуру 'Мука пшеничная'.
     3. Проверить, что ее свойства group и range являются объектами моделей.
-    </description>
+
     <expected>nom.group.name == 'Ингредиенты', nom.range.name == 'грамм'</expected>
     """
     sm = storage_manager()
@@ -234,12 +235,12 @@ def test_valid_result_storage_manager_convert_nomenclature_relations():
 
 def test_valid_result_storage_manager_load_success():
     """
-    <summary>Проверяет вызов load() для запуска логики первого старта.</summary>
-    <description>
+    Проверяет вызов load() для запуска логики первого старта.
+
     1. Загрузить настройки settings.json с first_launch_flag = True.
     2. Вызвать sm.load(_settings_path()).
     3. Проверить успешность формирования данных.
-    </description>
+
     <expected>sm.is_loaded is True, данные созданы</expected>
     """
     settings_mgr = settings_manager()
@@ -260,13 +261,13 @@ def test_valid_result_storage_manager_load_success():
 
 def test_valid_result_storage_manager_first_start_generates_data():
     """
-    <summary>Проверяет формирование первичных данных при первом старте системы.</summary>
-    <description>
+    Проверяет формирование первичных данных при первом старте системы.
+
     1. Загрузить настройки и установить first_launch_flag = True.
     2. Вызвать first_start(_settings_path()).
-    3. Проверить заполнение всех 4 справочников данными для рецепта.
+    3. Проверить заполнение всех справочников данными для рецепта.
     4. Проверить автоматический сброс флага first_launch_flag в False.
-    </description>
+
     <expected>res is True, first_launch_flag == False, данные рецепта созданы</expected>
     """
     settings_mgr = settings_manager()
@@ -298,12 +299,12 @@ def test_valid_result_storage_manager_first_start_generates_data():
 
 def test_valid_result_storage_manager_first_start_disabled():
     """
-    <summary>Проверяет запрет повторной генерации первичных данных при first_launch_flag = False.</summary>
-    <description>
+    Проверяет запрет повторной генерации первичных данных при first_launch_flag = False.
+
     1. Загрузить настройки и принудительно установить first_launch_flag = False.
     2. Вызвать first_start(_settings_path()).
     3. Убедиться, что первичные данные не создаются повторно.
-    </description>
+
     <expected>first_start() возвращает False, хранилища остаются пустыми</expected>
     """
     settings_mgr = settings_manager()
@@ -320,11 +321,11 @@ def test_valid_result_storage_manager_first_start_disabled():
 
 def test_valid_result_storage_manager_first_start_recipe_linked():
     """
-    <summary>Проверяет корректность связей моделей в данных первого старта.</summary>
-    <description>
+    Проверяет корректность связей моделей в данных первого старта.
+
     1. Запустить first_start с флагом True.
     2. Найти 'Мука пшеничная' и проверить ее группу и единицу измерения.
-    </description>
+
     <expected>Группа == 'Ингредиенты', единица == 'грамм'</expected>
     """
     settings_mgr = settings_manager()
@@ -342,13 +343,14 @@ def test_valid_result_storage_manager_first_start_recipe_linked():
 
 def test_valid_result_storage_manager_first_start_generates_recipes():
     """
-    <summary>Проверяет генерацию технологических карт (рецептов) при первом старте.</summary>
-    <description>
+    Проверяет генерацию технологических карт (рецептов) при первом старте.
+
     1. Запустить first_start с флагом True.
     2. Проверить наличие рецепта полуфабриката ('Песочное тесто')
        и рецепта готового блюда с упаковкой ('Песочное печенье в упаковке').
-    </description>
-    <expected>Оба рецепта сформированы и зарегистрированы в хранилище.</expected>
+    3. Проверить, что готовое блюдо использует принцип 'блюдо в блюде' (включает sub_recipe).
+
+    <expected>Оба рецепта сформированы, печенье включает вложенный рецепт теста и упаковку.</expected>
     """
     settings_mgr = settings_manager()
     settings_mgr.load(_settings_path())
@@ -362,25 +364,32 @@ def test_valid_result_storage_manager_first_start_generates_recipes():
     assert "Песочное тесто" in rec_names
     assert "Песочное печенье в упаковке" in rec_names
 
-    # Проверяем, что в рецепте готового блюда есть полуфабрикат и упаковка
+    rec_dough = sm._find_recipe_by_name("Песочное тесто")
     rec_cookie = sm._find_recipe_by_name("Песочное печенье в упаковке")
     assert rec_cookie is not None
-    row_noms = [r.nomenclature.name for r in rec_cookie.rows]
-    assert "Песочное тесто" in row_noms
-    assert "Коробка крафтовая" in row_noms
+
+    # Проверяем принцип "блюдо в блюде": строка содержит sub_recipe теста
+    dough_row = next((r for r in rec_cookie.rows if r.sub_recipe is not None), None)
+    assert dough_row is not None
+    assert dough_row.sub_recipe == rec_dough
+    assert dough_row.nomenclature.name == "Песочное тесто"
+
+    # Проверяем наличие строки с упаковкой
+    box_row = next((r for r in rec_cookie.rows if r.nomenclature.name == "Коробка крафтовая"), None)
+    assert box_row is not None
 
 
 def test_valid_result_storage_manager_first_start_recipes_weight_calculation():
     """
-    <summary>Проверяет вычисление веса Брутто и Нетто для рецептов первого старта.</summary>
-    <description>
+    Проверяет рекурсивное вычисление веса Брутто и Нетто для рецептов первого старта.
+
     1. Запустить first_start с флагом True.
     2. Проверить веса рецепта полуфабриката: Мука(250/250) + Масло(150/150) + Сахар(100/100) + Яйцо(60/50).
-    3. Проверить веса рецепта печенья в упаковке: Тесто(560/500) + Коробка(40/40).
-    </description>
+    3. Проверить рекурсивный расчет веса печенья: Тесто(560/550 рекурсивно) + Коробка(40/40).
+
     <expected>
     Тесто: брутто == 560, нетто == 550.
-    Печенье в коробке: брутто == 600, нетто == 540.
+    Печенье в коробке (рекурсивно): брутто == 600, нетто == 590.
     </expected>
     """
     settings_mgr = settings_manager()
@@ -397,5 +406,7 @@ def test_valid_result_storage_manager_first_start_recipes_weight_calculation():
 
     rec_cookie = sm._find_recipe_by_name("Песочное печенье в упаковке")
     assert rec_cookie is not None
+    # Рекурсивный расчет: 560 (из sub_recipe) + 40 (коробка)
     assert rec_cookie.gross_weight == 600.0
-    assert rec_cookie.net_weight == 540.0
+    # Рекурсивный расчет: 550 (из sub_recipe) + 40 (коробка)
+    assert rec_cookie.net_weight == 590.0
