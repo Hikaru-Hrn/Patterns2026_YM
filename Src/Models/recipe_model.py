@@ -10,6 +10,8 @@ class recipe_model(entity_model):
 
     Описывает состав блюда или полуфабриката, нормы закладки ингредиентов,
     выходную номенклатуру, а также вычисляет суммарный вес брутто и нетто.
+    Поддерживает вложенные рецепты (принцип 'блюдо в блюде') с рекурсивным
+    расчетом веса.
     """
 
     __dish: nomenclature_model = None
@@ -57,16 +59,26 @@ class recipe_model(entity_model):
         return list(self.__rows)
 
     def add_row(self, row: recipe_row_model) -> bool:
-        """Добавляет строку ингредиента в технологическую карту.
+        """Добавляет строку ингредиента или вложенного рецепта в технологическую карту.
 
-        Исключает добавление дублирующихся строк по одной и той же номенклатуре.
+        Исключает добавление дублирующихся строк по одной номенклатуре или вложенному рецепту,
+        а также защищает от циклической зависимости (добавления рецепта в самого себя).
 
         :param row: Экземпляр recipe_row_model.
         :return: True, если строка успешно добавлена, иначе False.
         """
         validator.validate(row, recipe_row_model, "row")
-        if any(r.nomenclature == row.nomenclature for r in self.__rows):
+        if row.sub_recipe is not None and row.sub_recipe == self:
             return False
+
+        for r in self.__rows:
+            if r.sub_recipe is not None and row.sub_recipe is not None:
+                if r.sub_recipe == row.sub_recipe:
+                    return False
+            elif r.nomenclature is not None and row.nomenclature is not None:
+                if r.nomenclature == row.nomenclature:
+                    return False
+
         self.__rows.append(row)
         return True
 
@@ -80,26 +92,46 @@ class recipe_model(entity_model):
             self.__rows.remove(row)
             return True
         for r in list(self.__rows):
-            if r.unique_code == getattr(row, "unique_code", None) or r.nomenclature == getattr(row, "nomenclature", None):
+            if r.unique_code == getattr(row, "unique_code", None):
+                self.__rows.remove(r)
+                return True
+            if row.sub_recipe is not None and r.sub_recipe == row.sub_recipe:
+                self.__rows.remove(r)
+                return True
+            if row.nomenclature is not None and r.nomenclature == row.nomenclature:
                 self.__rows.remove(r)
                 return True
         return False
 
     @property
     def gross_weight(self) -> float:
-        """Вычисляет суммарный вес брутто всех ингредиентов рецепта.
+        """Вычисляет суммарный вес брутто всех ингредиентов с рекурсивным обходом вложенных рецептов.
 
-        Рассчитывается путем сложения веса брутто каждого ингредиента.
+        Принцип 'блюдо в блюде': если строка содержит вложенную технологическую карту (sub_recipe),
+        ее вес брутто вычисляется рекурсивно через обращение к sub_recipe.gross_weight.
         """
-        return round(sum(r.gross_weight for r in self.__rows), 3)
+        total = 0.0
+        for r in self.__rows:
+            if r.sub_recipe is not None and r.gross_weight == 0.0:
+                total += r.sub_recipe.gross_weight
+            else:
+                total += r.gross_weight
+        return round(total, 3)
 
     @property
     def net_weight(self) -> float:
-        """Вычисляет суммарный вес нетто всех ингредиентов рецепта.
+        """Вычисляет суммарный вес нетто всех ингредиентов с рекурсивным обходом вложенных рецептов.
 
-        Рассчитывается путем сложения веса нетто каждого ингредиента.
+        Принцип 'блюдо в блюде': если строка содержит вложенную технологическую карту (sub_recipe),
+        ее вес нетто вычисляется рекурсивно через обращение к sub_recipe.net_weight.
         """
-        return round(sum(r.net_weight for r in self.__rows), 3)
+        total = 0.0
+        for r in self.__rows:
+            if r.sub_recipe is not None and r.net_weight == 0.0:
+                total += r.sub_recipe.net_weight
+            else:
+                total += r.net_weight
+        return round(total, 3)
 
     @staticmethod
     def create(name: str, dish: nomenclature_model, rows: list = None,

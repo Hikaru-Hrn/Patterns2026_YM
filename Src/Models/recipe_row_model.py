@@ -8,11 +8,13 @@ from Src.Models.range_model import range_model
 class recipe_row_model(abstract_model):
     """Строка технологической карты (рецепта).
 
-    Содержит номенклатуру (ингредиент, полуфабрикат или упаковку),
+    Содержит номенклатуру (ингредиент, тару) либо ссылку на вложенную
+    технологическую карту (полуфабрикат, принцип 'блюдо в блюде'),
     единицу измерения, вес брутто и вес нетто.
     """
 
     __nomenclature: nomenclature_model = None
+    __sub_recipe = None
     __range: range_model = None
     __gross_weight: float = 0.0
     __net_weight: float = 0.0
@@ -24,6 +26,8 @@ class recipe_row_model(abstract_model):
     @property
     def nomenclature(self) -> nomenclature_model:
         """Возвращает номенклатуру строки рецепта."""
+        if self.__nomenclature is None and self.__sub_recipe is not None:
+            return self.__sub_recipe.dish
         return self.__nomenclature
 
     @nomenclature.setter
@@ -35,6 +39,34 @@ class recipe_row_model(abstract_model):
         """
         validator.validate(value, nomenclature_model, "nomenclature")
         self.__nomenclature = value
+
+    @property
+    def sub_recipe(self):
+        """Возвращает вложенный рецепт (полуфабрикат), если строка является составной."""
+        return self.__sub_recipe
+
+    @sub_recipe.setter
+    def sub_recipe(self, value) -> None:
+        """Устанавливает вложенный рецепт (полуфабрикат) для реализации принципа 'блюдо в блюде'.
+
+        :param value: Экземпляр recipe_model или None.
+        """
+        if value is not None:
+            from Src.Models.recipe_model import recipe_model
+            validator.validate(value, recipe_model, "sub_recipe")
+            if self.__nomenclature is None and value.dish is not None:
+                self.__nomenclature = value.dish
+        self.__sub_recipe = value
+
+    @property
+    def recipe(self):
+        """Синоним свойства sub_recipe."""
+        return self.__sub_recipe
+
+    @recipe.setter
+    def recipe(self, value) -> None:
+        """Синоним сеттера sub_recipe."""
+        self.sub_recipe = value
 
     @property
     def range(self) -> range_model:
@@ -54,6 +86,8 @@ class recipe_row_model(abstract_model):
     @property
     def gross_weight(self) -> float:
         """Возвращает вес брутто строки рецепта."""
+        if self.__sub_recipe is not None and self.__gross_weight == 0.0:
+            return self.__sub_recipe.gross_weight
         return self.__gross_weight
 
     @gross_weight.setter
@@ -71,6 +105,8 @@ class recipe_row_model(abstract_model):
     @property
     def net_weight(self) -> float:
         """Возвращает вес нетто строки рецепта."""
+        if self.__sub_recipe is not None and self.__net_weight == 0.0:
+            return self.__sub_recipe.net_weight
         return self.__net_weight
 
     @net_weight.setter
@@ -86,19 +122,33 @@ class recipe_row_model(abstract_model):
         self.__net_weight = float(value)
 
     @staticmethod
-    def create(nomenclature: nomenclature_model, range: range_model,
-               gross_weight: float, net_weight: float) -> "recipe_row_model":
+    def create(item, range: range_model = None,
+               gross_weight: float = 0.0, net_weight: float = 0.0) -> "recipe_row_model":
         """Фабричный метод создания строки рецепта.
 
-        :param nomenclature: Номенклатура ингредиента / полуфабриката / тары.
-        :param range: Единица измерения.
-        :param gross_weight: Вес брутто.
-        :param net_weight: Вес нетто.
+        Поддерживает как простую номенклатуру (ингредиент, тара),
+        так и вложенную технологическую карту (полуфабрикат 'блюдо в блюде').
+
+        :param item: Экземпляр nomenclature_model или recipe_model.
+        :param range: Единица измерения (опционально, если item - recipe_model, берется из блюда).
+        :param gross_weight: Вес брутто (если 0 и передан recipe_model, рассчитывается рекурсивно).
+        :param net_weight: Вес нетто (если 0 и передан recipe_model, рассчитывается рекурсивно).
         :return: Заполненный экземпляр recipe_row_model.
         """
+        from Src.Models.recipe_model import recipe_model
+
         row = recipe_row_model()
-        row.nomenclature = nomenclature
-        row.range = range
-        row.gross_weight = gross_weight
-        row.net_weight = net_weight
+        if isinstance(item, recipe_model):
+            row.sub_recipe = item
+            if range is not None:
+                row.range = range
+            elif item.dish is not None and item.dish.range is not None:
+                row.range = item.dish.range
+            row.gross_weight = gross_weight
+            row.net_weight = net_weight
+        else:
+            row.nomenclature = item
+            row.range = range
+            row.gross_weight = gross_weight
+            row.net_weight = net_weight
         return row
