@@ -154,11 +154,11 @@ class storage_manager(abstract_manager):
         :return: True, если данные успешно сформированы.
         """
         try:
-            # --- 1. Единицы измерения (через фабричный метод create) ---
-            unit_g = range_model.create("грамм", 1.0)
-            unit_kg = range_model.create("килограмм", 1000.0, unit_g)
-            unit_pcs = range_model.create("штука", 1.0)
-            unit_ml = range_model.create("миллилитр", 1.0)
+            # --- 1. Единицы измерения (через фабричные методы create_*) ---
+            unit_g = range_model.create_gram()
+            unit_kg = range_model.create_kilogram(unit_g)
+            unit_pcs = range_model.create_piece()
+            unit_ml = range_model.create_milliliter()
 
             self.add_range(unit_g)
             self.add_range(unit_kg)
@@ -256,15 +256,15 @@ class storage_manager(abstract_manager):
             )
             self.add_recipe(recipe_dough)
 
-            # Рецепт 2: Готовое блюдо с полуфабрикатом и упаковкой
+            # Рецепт 2: Готовое блюдо с полуфабрикатом и упаковкой (принцип 'блюдо в блюде')
             recipe_cookies = recipe_model.create(
                 name="Песочное печенье в упаковке",
                 dish=nom_cookies_packaged,
                 rows=[
-                    recipe_row_model.create(nom_dough, unit_g, gross_weight=560.0, net_weight=500.0),
+                    recipe_row_model.create(recipe_dough, unit_g),
                     recipe_row_model.create(nom_box, unit_pcs, gross_weight=40.0, net_weight=40.0),
                 ],
-                comments="Выпекание печенья из полуфабриката и упаковка в крафтовую коробку"
+                comments="Выпекание печенья из полуфабриката теста и упаковка в крафтовую коробку"
             )
             self.add_recipe(recipe_cookies)
 
