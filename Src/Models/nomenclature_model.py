@@ -23,6 +23,24 @@ class nomenclature_model(entity_model):
         """
         super().__init__()
 
+    @staticmethod
+    def create(name: str, full_name: str, group: group_model,
+               range: range_model) -> "nomenclature_model":
+        """Фабричный метод создания номенклатурной позиции.
+
+        :param name: Краткое наименование номенклатуры (до 50 символов).
+        :param full_name: Полное наименование номенклатуры (до 255 символов).
+        :param group: Группа номенклатуры.
+        :param range: Единица измерения.
+        :return: Заполненный экземпляр nomenclature_model.
+        """
+        item = nomenclature_model()
+        item.name = name
+        item.full_name = full_name
+        item.group = group
+        item.range = range
+        return item
+
     @property
     def full_name(self) -> str:
         """Возвращает полное наименование номенклатуры"""

@@ -19,8 +19,24 @@ class warehouse_model(entity_model):
         :param address: Адрес склада
         """
         super().__init__()
-        self.name = name
-        self.address = address
+        if name != "":
+            self.name = name
+        if address != "":
+            self.address = address
+
+    @staticmethod
+    def create(name: str, address: str = "") -> "warehouse_model":
+        """Фабричный метод создания склада.
+
+        :param name: Наименование склада (до 50 символов).
+        :param address: Адрес склада (до 255 символов).
+        :return: Заполненный экземпляр warehouse_model.
+        """
+        warehouse = warehouse_model()
+        warehouse.name = name
+        if address != "":
+            warehouse.address = address
+        return warehouse
 
     @property
     def address(self) -> str:
