@@ -136,6 +136,42 @@ class storage_manager(abstract_manager):
                 return rec
         return None
 
+    def find_entity(self, entity_type: str, code: str):
+        """Ищет доменную сущность по типу и коду (unique_code или name).
+
+        :param entity_type: Тип сущности (номенклатура/nomenclature, единица_измерения/range, рецепт/receipt).
+        :param code: Уникальный код или наименование сущности.
+        :return: Экземпляр сущности или None.
+        :raises arguments_exception: Если тип сущности не распознан.
+        """
+        if not isinstance(entity_type, str) or not entity_type.strip():
+            raise arguments_exception("entity_type", "Тип сущности не может быть пустым")
+
+        clean_type = entity_type.strip().lower()
+        clean_code = str(code).strip()
+
+        if clean_type in ("nomenclature", "номенклатура"):
+            items = self._nomenclatures
+        elif clean_type in ("range", "единица_измерения", "единица", "unit"):
+            items = self._ranges
+        elif clean_type in ("receipt", "recipe", "рецепт", "технологическая_карта"):
+            items = self._recipes
+        else:
+            raise arguments_exception(
+                "entity_type",
+                f"Неподдерживаемый тип сущности '{entity_type}'. Допустимые: номенклатура, единица_измерения, рецепт"
+            )
+
+        for item in items:
+            if getattr(item, "unique_code", None) == clean_code:
+                return item
+
+        for item in items:
+            if getattr(item, "name", None) == clean_code:
+                return item
+
+        return None
+
     # -------------------------------------------------------------------------
     # Загрузка и конвертация (полиморфизм abstract_manager)
     # -------------------------------------------------------------------------
