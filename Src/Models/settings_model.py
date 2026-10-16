@@ -1,19 +1,21 @@
 from Src.Core.abstract_model import abstract_model
 from Src.Models.organization_model import organization_model
 from Src.Core.validator import validator
+from Src.Dtos.report_type_enum import report_type_enum
 
 
 class settings_model(abstract_model):
     """Модель настроек приложения.
 
     Содержит карточку организации, ФИО руководителя и главного
-    бухгалтера, а также флаг первого запуска.
+    бухгалтера, флаг первого запуска и формат ответа по умолчанию.
     """
 
     __organization: organization_model = None
     __boss_name: str = ""
     __account_name: str = ""
     __first_launch_flag: bool = True
+    __response_format: report_type_enum = report_type_enum.MARKDOWN
     __max_len_boss_name = 255
     __max_len_account_name = 255
 
@@ -78,3 +80,20 @@ class settings_model(abstract_model):
         """
         validator.validate(new_flag, bool, "first_launch_flag")
         self.__first_launch_flag = new_flag
+
+    @property
+    def response_format(self) -> report_type_enum:
+        """Возвращает формат ответа по умолчанию (CSV, Markdown, XML, TXT, HTML)."""
+        return self.__response_format
+
+    @response_format.setter
+    def response_format(self, value):
+        """Устанавливает формат ответа по умолчанию.
+
+        :param value: Экземпляр report_type_enum или строка с названием формата.
+        :raises arguments_exception: Если формат не является report_type_enum или известной строкой.
+        """
+        if isinstance(value, str):
+            value = report_type_enum.from_string(value)
+        validator.validate(value, report_type_enum, "response_format")
+        self.__response_format = value
