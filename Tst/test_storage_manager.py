@@ -7,7 +7,7 @@ from Src.Logics.storage_manager import storage_manager
 from Src.Models.group_model import group_model
 from Src.Models.nomenclature_model import nomenclature_model
 from Src.Models.range_model import range_model
-from Src.Models.recipe_model import recipe_model
+from Src.Models.receipt_model import receipt_model
 from Src.Models.warehouse_model import warehouse_model
 
 
@@ -161,8 +161,8 @@ def test_valid_result_storage_manager_add_recipe_unique():
     unit = range_model.create("грамм", 1.0)
     dish = nomenclature_model.create("Тесто", "Песочное тесто", grp, unit)
 
-    rec1 = recipe_model.create(name="Песочное тесто", dish=dish)
-    rec2 = recipe_model.create(name="Песочное тесто", dish=dish)
+    rec1 = receipt_model.create(name="Песочное тесто", dish=dish)
+    rec2 = receipt_model.create(name="Песочное тесто", dish=dish)
 
     assert sm.add_recipe(rec1) is True
     assert sm.add_recipe(rec2) is False

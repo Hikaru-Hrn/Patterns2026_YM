@@ -5,8 +5,8 @@ from Src.Logics.settings_manager import settings_manager
 from Src.Models.group_model import group_model
 from Src.Models.nomenclature_model import nomenclature_model
 from Src.Models.range_model import range_model
-from Src.Models.recipe_model import recipe_model
-from Src.Models.recipe_row_model import recipe_row_model
+from Src.Models.receipt_model import receipt_model
+from Src.Models.receipt_row_model import recipe_row_model
 from Src.Models.warehouse_model import warehouse_model
 
 
@@ -103,9 +103,9 @@ class storage_manager(abstract_manager):
             return True
         return False
 
-    def add_recipe(self, item: recipe_model) -> bool:
+    def add_recipe(self, item: receipt_model) -> bool:
         """Добавляет технологическую карту (рецепт) с проверкой уникальности."""
-        validator.validate(item, recipe_model)
+        validator.validate(item, receipt_model)
         if self._is_unique(self._recipes, item):
             self._recipes.append(item)
             return True
@@ -129,11 +129,47 @@ class storage_manager(abstract_manager):
                 return r
         return None
 
-    def _find_recipe_by_name(self, name: str) -> recipe_model:
+    def _find_recipe_by_name(self, name: str) -> receipt_model:
         """Ищет объект технологической карты по наименованию."""
         for rec in self._recipes:
             if rec.name == name:
                 return rec
+        return None
+
+    def find_entity(self, entity_type: str, code: str):
+        """Ищет доменную сущность по типу и коду (unique_code или name).
+
+        :param entity_type: Тип сущности (номенклатура/nomenclature, единица_измерения/range, рецепт/receipt).
+        :param code: Уникальный код или наименование сущности.
+        :return: Экземпляр сущности или None.
+        :raises arguments_exception: Если тип сущности не распознан.
+        """
+        if not isinstance(entity_type, str) or not entity_type.strip():
+            raise arguments_exception("entity_type", "Тип сущности не может быть пустым")
+
+        clean_type = entity_type.strip().lower()
+        clean_code = str(code).strip()
+
+        if clean_type in ("nomenclature", "номенклатура"):
+            items = self._nomenclatures
+        elif clean_type in ("range", "единица_измерения", "единица", "unit"):
+            items = self._ranges
+        elif clean_type in ("receipt", "recipe", "рецепт", "технологическая_карта"):
+            items = self._recipes
+        else:
+            raise arguments_exception(
+                "entity_type",
+                f"Неподдерживаемый тип сущности '{entity_type}'. Допустимые: номенклатура, единица_измерения, рецепт"
+            )
+
+        for item in items:
+            if getattr(item, "unique_code", None) == clean_code:
+                return item
+
+        for item in items:
+            if getattr(item, "name", None) == clean_code:
+                return item
+
         return None
 
     # -------------------------------------------------------------------------
@@ -243,7 +279,7 @@ class storage_manager(abstract_manager):
 
             # --- 5. Технологические карты / Рецепты (через фабричный метод create) ---
             # Рецепт 1: Полуфабрикат «Песочное тесто»
-            recipe_dough = recipe_model.create(
+            recipe_dough = receipt_model.create(
                 name="Песочное тесто",
                 dish=nom_dough,
                 rows=[
@@ -257,7 +293,7 @@ class storage_manager(abstract_manager):
             self.add_recipe(recipe_dough)
 
             # Рецепт 2: Готовое блюдо с полуфабрикатом и упаковкой (принцип 'блюдо в блюде')
-            recipe_cookies = recipe_model.create(
+            recipe_cookies = receipt_model.create(
                 name="Песочное печенье в упаковке",
                 dish=nom_cookies_packaged,
                 rows=[

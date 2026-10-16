@@ -90,6 +90,10 @@ class settings_manager(abstract_manager):
             raw_flag = self._data.get("first_launch_flag", True)
             self._settings.first_launch_flag = bool(raw_flag)
 
+            raw_format = self._data.get("response_format")
+            if raw_format:
+                self._settings.response_format = raw_format
+
             self._is_loaded = True
             return True
         except Exception:

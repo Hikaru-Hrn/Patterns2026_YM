@@ -1,6 +1,6 @@
-# UML диаграммы для моделей данных, `settings_manager` и `storage_manager`
+# UML диаграммы для моделей данных, менеджеров и фабрики отчетов
 
-В данном документе представлены UML-диаграммы классов и последовательностей, описывающие архитектуру приложения, доменных моделей (включая технологические карты/рецепты, композицию «блюдо в блюде» с рекурсивным расчетом веса, фабричные методы), а также менеджеров настроек и хранилища данных.
+В данном документе представлены UML-диаграммы классов и последовательностей, описывающие архитектуру приложения, доменных моделей (технологические карты/рецепты, полуфабрикаты, тара, фабричные методы), менеджеров настроек и хранилища данных, а также подсистемы формирования отчетов (паттерн Factory Method, форматы CSV, Markdown, XML, HTML, TXT, REST API).
 
 ---
 
@@ -61,31 +61,35 @@ classDiagram
 
     class recipe_row_model {
         -nomenclature_model __nomenclature
-        -recipe_model __sub_recipe
+        -receipt_model __sub_recipe
         -range_model __range
         -float __gross_weight
         -float __net_weight
         +nomenclature() nomenclature_model
-        +sub_recipe() recipe_model
-        +recipe() recipe_model
+        +sub_recipe() receipt_model
+        +recipe() receipt_model
         +range() range_model
         +gross_weight() float
         +net_weight() float
+        +brutto() float
+        +netto() float
+        +name() str
         +create(item, range, gross_weight, net_weight)$ recipe_row_model
     }
 
-    class recipe_model {
+    class receipt_model {
         -nomenclature_model __dish
         -list __rows
         -str __comments
         +dish() nomenclature_model
         +comments() str
         +rows() list
+        +items() list
         +gross_weight() float
         +net_weight() float
         +add_row(row: recipe_row_model) bool
         +remove_row(row: recipe_row_model) bool
-        +create(name: str, dish: nomenclature_model, rows: list, comments: str)$ recipe_model
+        +create(name: str, dish: nomenclature_model, rows: list, comments: str)$ receipt_model
     }
 
     class abstract_manager {
@@ -110,6 +114,19 @@ classDiagram
         +data() dict
     }
 
+    class settings_model {
+        -organization_model __organization
+        -str __boss_name
+        -str __account_name
+        -bool __first_launch_flag
+        -report_type_enum __response_format
+        +organization() organization_model
+        +boss_name() str
+        +account_name() str
+        +first_launch_flag() bool
+        +response_format() report_type_enum
+    }
+
     class storage_manager {
         -storage_manager _instance$
         -bool _initialized$
@@ -126,8 +143,8 @@ classDiagram
         +add_range(item: range_model) bool
         +add_group(item: group_model) bool
         +add_nomenclature(item: nomenclature_model) bool
-        +add_recipe(item: recipe_model) bool
-        -_is_unique(items: list, candidate) bool$
+        +add_recipe(item: receipt_model) bool
+        +find_entity(entity_type: str, code: str) abstract_model
         +warehouses() list
         +ranges() list
         +units() list
@@ -136,32 +153,103 @@ classDiagram
         +recipes() list
     }
 
-    abstract_model <|-- entity_model : Наследование
-    abstract_model <|-- recipe_row_model : Наследование
-    entity_model <|-- warehouse_model : Наследование
-    entity_model <|-- range_model : Наследование
-    entity_model <|-- group_model : Наследование
-    entity_model <|-- nomenclature_model : Наследование
-    entity_model <|-- recipe_model : Наследование
+    class report_type_enum {
+        <<enumeration>>
+        TXT
+        CSV
+        MARKDOWN
+        XML
+        HTML
+        +from_string(value: str)$ report_type_enum
+    }
 
-    abstract_manager <|-- settings_manager : Наследование
-    abstract_manager <|-- storage_manager : Наследование
+    class report_result_dto {
+        -str __text
+        -list __binary
+        +text() str
+        +binary() list
+    }
+
+    class abstract_report {
+        <<abstract>>
+        +build(source: abstract_model)* report_result_dto
+    }
+
+    class text_report {
+        +build(source: abstract_model) report_result_dto
+    }
+
+    class csv_report {
+        +build(source: abstract_model) report_result_dto
+    }
+
+    class markdown_report {
+        +build(source: abstract_model) report_result_dto
+    }
+
+    class xml_report {
+        +build(source: abstract_model) report_result_dto
+    }
+
+    class html_report {
+        +build(source: abstract_model) report_result_dto
+    }
+
+    class abstract_report_factory {
+        <<abstract>>
+        +create(report_type: report_type_enum)* abstract_report
+        +create_default()* abstract_report
+    }
+
+    class report_factory {
+        -dict __mapping
+        -settings_model __settings
+        +create(report_type: report_type_enum) abstract_report
+        +create_default() abstract_report
+        +settings() settings_model
+    }
+
+    abstract_model <|-- entity_model
+    abstract_model <|-- recipe_row_model
+    abstract_model <|-- settings_model
+    entity_model <|-- warehouse_model
+    entity_model <|-- range_model
+    entity_model <|-- group_model
+    entity_model <|-- nomenclature_model
+    entity_model <|-- receipt_model
+    entity_model <|-- report_result_dto
+
+    abstract_manager <|-- settings_manager
+    abstract_manager <|-- storage_manager
+
+    abstract_report <|-- text_report
+    abstract_report <|-- csv_report
+    abstract_report <|-- markdown_report
+    abstract_report <|-- xml_report
+    abstract_report <|-- html_report
+
+    abstract_report_factory <|-- report_factory
+
+    report_factory o-- settings_model : Инкапсулирует настройки
+    report_factory ..> abstract_report : Создает
+    report_factory ..> report_type_enum : Использует
+    abstract_report ..> report_result_dto : Формирует
 
     storage_manager ..> settings_manager : Singleton call
     storage_manager o-- "0..*" warehouse_model : Хранит
     storage_manager o-- "0..*" range_model : Хранит
     storage_manager o-- "0..*" group_model : Хранит
     storage_manager o-- "0..*" nomenclature_model : Хранит
-    storage_manager o-- "0..*" recipe_model : Хранит
+    storage_manager o-- "0..*" receipt_model : Хранит
 
     nomenclature_model --> group_model : Группа
     nomenclature_model --> range_model : Ед. изм.
     range_model --> range_model : Базовая единица
 
-    recipe_model *-- "1..*" recipe_row_model : Состав
-    recipe_model --> nomenclature_model : Выходное блюдо/полуфабрикат
+    receipt_model *-- "1..*" recipe_row_model : Состав
+    receipt_model --> nomenclature_model : Выходное блюдо/полуфабрикат
     recipe_row_model --> nomenclature_model : Номенклатура / тара
-    recipe_row_model --> "0..1" recipe_model : Вложенный рецепт (блюдо в блюде)
+    recipe_row_model --> "0..1" receipt_model : Вложенный рецепт (блюдо в блюде)
     recipe_row_model --> range_model : Ед. изм.
 ```
 
@@ -171,163 +259,121 @@ classDiagram
 @startuml
 skinparam classAttributeIconSize 0
 
-abstract class abstract_model {
-    - __unique_code: str
-    + unique_code: str
-    + __eq__(value): bool
+enum report_type_enum {
+    TXT
+    CSV
+    MARKDOWN
+    XML
+    HTML
+    + {static} from_string(value: str): report_type_enum
 }
 
-abstract class entity_model {
-    - __name: str
-    + name: str
+class report_result_dto {
+    - __text: str
+    - __binary: list
+    + text: str
+    + binary: list
 }
 
-class group_model {
-    + {static} create(name: str): group_model
+abstract class abstract_report {
+    + {abstract} build(source: abstract_model): report_result_dto
 }
 
-class range_model {
-    - __base: range_model
-    - __conversion_factor: float
-    + base: range_model
-    + conversion_factor: float
-    + {static} create(name: str, factor: float, base: range_model): range_model
-    + {static} create_gram(): range_model
-    + {static} create_kilogram(base: range_model): range_model
-    + {static} create_piece(): range_model
-    + {static} create_milliliter(): range_model
+class text_report {
+    + build(source: abstract_model): report_result_dto
 }
 
-class warehouse_model {
-    - __address: str
-    + address: str
-    + {static} create(name: str, address: str): warehouse_model
+class csv_report {
+    + build(source: abstract_model): report_result_dto
 }
 
-class nomenclature_model {
-    - __full_name: str
-    - __group: group_model
-    - __range: range_model
-    + full_name: str
-    + group: group_model
-    + range: range_model
-    + {static} create(name: str, full_name: str, group: group_model, range: range_model): nomenclature_model
+class markdown_report {
+    + build(source: abstract_model): report_result_dto
 }
 
-class recipe_row_model {
-    - __nomenclature: nomenclature_model
-    - __sub_recipe: recipe_model
-    - __range: range_model
-    - __gross_weight: float
-    - __net_weight: float
-    + nomenclature: nomenclature_model
-    + sub_recipe: recipe_model
-    + range: range_model
-    + gross_weight: float
-    + net_weight: float
-    + {static} create(item, range, gross, net): recipe_row_model
+class xml_report {
+    + build(source: abstract_model): report_result_dto
 }
 
-class recipe_model {
-    - __dish: nomenclature_model
-    - __rows: list
-    - __comments: str
-    + dish: nomenclature_model
-    + comments: str
-    + rows: list
-    + gross_weight: float (рекурсивный расчет)
-    + net_weight: float (рекурсивный расчет)
-    + add_row(row: recipe_row_model): bool
-    + remove_row(row: recipe_row_model): bool
-    + {static} create(name: str, dish: nomenclature_model, rows: list, comments: str): recipe_model
+class html_report {
+    + build(source: abstract_model): report_result_dto
 }
 
-abstract class abstract_manager {
-    # _is_loaded: bool
-    + {abstract} convert(): bool
+abstract class abstract_report_factory {
+    + {abstract} create(report_type: report_type_enum): abstract_report
+    + {abstract} create_default(): abstract_report
 }
 
-class storage_manager {
-    - {static} instance: storage_manager
-    + {static} __new__(): storage_manager
-    + convert(): bool
-    + first_start(file_name: str): bool
-    + add_recipe(item: recipe_model): bool
-    + recipes: list
+class report_factory {
+    - __mapping: dict
+    - __settings: settings_model
+    + create(report_type: report_type_enum): abstract_report
+    + create_default(): abstract_report
+    + settings: settings_model
 }
 
-abstract_model <|-- entity_model
-abstract_model <|-- recipe_row_model
-entity_model <|-- warehouse_model
-entity_model <|-- range_model
-entity_model <|-- group_model
-entity_model <|-- nomenclature_model
-entity_model <|-- recipe_model
+abstract_report <|-- text_report
+abstract_report <|-- csv_report
+abstract_report <|-- markdown_report
+abstract_report <|-- xml_report
+abstract_report <|-- html_report
 
-abstract_manager <|-- storage_manager
-
-recipe_model *-- recipe_row_model
-recipe_model --> nomenclature_model : dish
-recipe_row_model --> nomenclature_model : nomenclature
-recipe_row_model --> recipe_model : sub_recipe ("блюдо в блюде")
-recipe_row_model --> range_model : range
-storage_manager o-- recipe_model
+abstract_report_factory <|-- report_factory
+report_factory ..> abstract_report : creates
+report_factory o-- settings_model : encapsulates
+abstract_report ..> report_result_dto : returns
 @enduml
 ```
 
 ---
 
-## 2. Диаграмма последовательности: Первый старт («блюдо в блюде» и фабрики)
+## 2. Диаграмма последовательности: Формирование отчета через REST API
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client
-    participant Store as storage_manager (Singleton)
-    participant Sett as settings_manager (Singleton)
-    participant RangeFactory as range_model (Фабрики create_*)
-    participant RowFactory as recipe_row_model.create
-    participant RecipeFactory as recipe_model.create
+    actor Client as HTTP Клиент (Браузер / cURL)
+    participant API as FastAPI Router (main.py)
+    participant Storage as storage_manager (Singleton)
+    participant Factory as report_factory
+    participant Report as Конкретный отчет (csv, md, xml, html, txt)
+    participant Result as report_result_dto
 
-    Client->>Store: first_start()
-    Store->>Sett: settings_manager()
-    Store->>Sett: settings.first_launch_flag?
-    alt first_launch_flag == False
-        Store-->>Client: False (пропуск, данные уже сформированы)
-    else first_launch_flag == True
-        Store->>RangeFactory: create_gram(), create_kilogram(), create_piece(), create_milliliter()
-        Store->>RowFactory: create(nom_flour, unit_g, 250, 250) + Масло + Сахар + Яйцо
-        Store->>RecipeFactory: create("Песочное тесто", nom_dough, rows=[...])
-        Note over Store,RecipeFactory: Рецепт 1: Полуфабрикат (брутто 560г, нетто 550г)
-        Store->>RowFactory: create(recipe_dough, unit_g) ("блюдо в блюде")
-        Store->>RowFactory: create(nom_box, unit_pcs, 40, 40) (тара)
-        Store->>RecipeFactory: create("Песочное печенье в упаковке", nom_cookie, rows=[row_dough, row_box])
-        Note over Store,RecipeFactory: Рецепт 2: Блюдо с вложенным рецептом и упаковкой
-        Store->>Store: add_range(), add_warehouse(), add_group(), add_nomenclature(), add_recipe()
-        Store->>Sett: settings.first_launch_flag = False
-        Store-->>Client: True (первичные данные созданы)
-    end
+    Client->>API: GET /api/report/receipt/Песочное тесто?format=CSV
+    API->>Storage: find_entity("receipt", "Песочное тесто")
+    Storage-->>API: receipt_instance
+    API->>Factory: report_factory()
+    API->>Factory: create(report_type_enum.CSV)
+    Factory-->>API: csv_report_instance
+    API->>Report: build(receipt_instance)
+    Report->>Result: report_result_dto (binary=[...])
+    Result-->>Report: dto
+    Report-->>API: dto
+    Note over API,Client: Формат CSV/Markdown -> скачивание файла (attachment)
+    API-->>Client: HTTP 200 OK (Content-Disposition: attachment; filename="report.csv")
 ```
 
 ---
 
-## 3. Диаграмма последовательности: Рекурсивный расчет веса Брутто (`gross_weight`)
+## 3. Диаграмма последовательности: Формирование отчета через `create_default`
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client
-    participant ParentRecipe as recipe_model ("Песочное печенье в упаковке")
-    participant RowDough as recipe_row_model (sub_recipe)
-    participant NestedRecipe as recipe_model ("Песочное тесто")
-    participant RowBox as recipe_row_model (упаковка)
+    actor Client as HTTP Клиент
+    participant API as FastAPI Router (main.py)
+    participant Storage as storage_manager (Singleton)
+    participant Factory as report_factory
+    participant Settings as settings_model
 
-    Client->>ParentRecipe: get gross_weight
-    ParentRecipe->>RowDough: r.sub_recipe is not None?
-    Note over ParentRecipe,RowDough: Вложенный рецепт обнаружен -> рекурсивный вызов
-    ParentRecipe->>NestedRecipe: get gross_weight
-    NestedRecipe-->>ParentRecipe: 560.0 г (250г мука + 150г масло + 100г сахар + 60г яйцо)
-    ParentRecipe->>RowBox: r.gross_weight
-    RowBox-->>ParentRecipe: 40.0 г (коробка крафтовая)
-    ParentRecipe-->>Client: 600.0 г (560.0 + 40.0)
+    Client->>API: GET /api/report/default/nomenclature/Мука
+    API->>Storage: find_entity("nomenclature", "Мука")
+    Storage-->>API: nom_instance
+    API->>Factory: create_default()
+    Factory->>Settings: response_format (например, report_type_enum.MARKDOWN)
+    Settings-->>Factory: format
+    Factory->>Factory: create(format)
+    Factory-->>API: markdown_report_instance
+    API->>API: report.build(nom_instance)
+    API-->>Client: HTTP 200 OK (скачивание .md файла согласно настройкам)
 ```
