@@ -6,7 +6,12 @@ from Src.Core.validator import validator
 """
 class report_result_dto(entity_model):
     __text: str = ""
-    __binary: list
+    __binary: list = []
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.__text = ""
+        self.__binary = []
 
     """
     Тестовый результат
