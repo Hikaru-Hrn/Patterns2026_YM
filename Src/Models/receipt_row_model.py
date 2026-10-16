@@ -90,6 +90,11 @@ class recipe_row_model(abstract_model):
             return self.__sub_recipe.gross_weight
         return self.__gross_weight
 
+    @property
+    def brutto(self) -> float:
+        """Синоним свойства gross_weight."""
+        return self.gross_weight
+
     @gross_weight.setter
     def gross_weight(self, value: float) -> None:
         """Устанавливает вес брутто строки рецепта.
@@ -109,6 +114,11 @@ class recipe_row_model(abstract_model):
             return self.__sub_recipe.net_weight
         return self.__net_weight
 
+    @property
+    def netto(self) -> float:
+        """Синоним свойства net_weight."""
+        return self.net_weight
+
     @net_weight.setter
     def net_weight(self, value: float) -> None:
         """Устанавливает вес нетто строки рецепта.
@@ -120,6 +130,13 @@ class recipe_row_model(abstract_model):
         if value < 0:
             raise arguments_exception("net_weight", "Вес нетто не может быть отрицательным!")
         self.__net_weight = float(value)
+
+    @property
+    def name(self) -> str:
+        """Возвращает наименование элемента строки рецепта."""
+        if self.nomenclature is not None:
+            return self.nomenclature.name
+        return ""
 
     @staticmethod
     def create(item, range: range_model = None,
