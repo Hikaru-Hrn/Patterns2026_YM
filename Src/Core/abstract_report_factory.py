@@ -1,16 +1,16 @@
-from Src.Core.abstract_report import abstractmethod
+from abc import ABC, abstractmethod
 from Src.Dtos.report_type_enum import report_type_enum
-from abc import ABC
 
 
-"""
-Абстрактная фабрика отчетов.
-"""
 class abstract_report_factory(ABC):
+    """Абстрактная фабрика отчетов."""
 
-    """
-    Подобрать и создать инстанс нужного отчета
-    """
     @abstractmethod
     def create(self, report_type: report_type_enum):
+        """Подобрать и создать инстанс нужного отчета."""
+        pass
+
+    @abstractmethod
+    def create_default(self):
+        """Создать инстанс отчета по умолчанию на основе настроек."""
         pass
