@@ -58,6 +58,11 @@ class receipt_model(entity_model):
         """Возвращает список строк состава рецепта."""
         return list(self.__rows)
 
+    @property
+    def items(self) -> list:
+        """Возвращает список строк состава рецепта (синоним rows)."""
+        return list(self.__rows)
+
     def add_row(self, row: recipe_row_model) -> bool:
         """Добавляет строку ингредиента или вложенного рецепта в технологическую карту.
 
