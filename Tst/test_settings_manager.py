@@ -109,6 +109,59 @@ def test_valid_result_settings_manager_data_not_empty():
     assert "first_launch_flag" in manager.data
 
 
+def test_valid_result_settings_manager_response_format_loaded():
+    """
+    Проверяет, что после загрузки настроек поле response_format заполнено.
+
+    1. Вызвать manager.load(_settings_path()).
+    2. Проверить значение response_format.
+
+    <expected>response_format == report_type_enum.MARKDOWN</expected>
+    """
+    from Src.Dtos.report_type_enum import report_type_enum
+
+    manager = settings_manager()
+    manager.load(_settings_path())
+    assert manager.settings.response_format == report_type_enum.MARKDOWN
+
+
+def test_valid_result_settings_model_response_format_string_setter():
+    """
+    Проверяет возможность установки response_format через строку.
+
+    1. Установить response_format = "CSV".
+    2. Проверить, что значение преобразовалось в report_type_enum.CSV.
+
+    <expected>settings.response_format == report_type_enum.CSV</expected>
+    """
+    from Src.Dtos.report_type_enum import report_type_enum
+    from Src.Models.settings_model import settings_model
+
+    settings = settings_model()
+    settings.response_format = "CSV"
+    assert settings.response_format == report_type_enum.CSV
+
+    settings.response_format = "html"
+    assert settings.response_format == report_type_enum.HTML
+
+
+def test_invalid_result_settings_model_response_format_bad_value():
+    """
+    Проверяет реакцию сеттера response_format на некорректное значение.
+
+    1. Передать неподдерживаемую строку или объект другого типа.
+
+    <expected>arguments_exception</expected>
+    """
+    from Src.Models.settings_model import settings_model
+
+    settings = settings_model()
+    with pytest.raises(arguments_exception):
+        settings.response_format = "UNSUPPORTED_FORMAT"
+    with pytest.raises(arguments_exception):
+        settings.response_format = 12345
+
+
 # ---------- Ошибки конвертации ----------
 
 def test_invalid_result_settings_manager_convert_bad_data():
