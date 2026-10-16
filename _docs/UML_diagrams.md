@@ -61,20 +61,20 @@ classDiagram
 
     class recipe_row_model {
         -nomenclature_model __nomenclature
-        -recipe_model __sub_recipe
+        -receipt_model __sub_recipe
         -range_model __range
         -float __gross_weight
         -float __net_weight
         +nomenclature() nomenclature_model
-        +sub_recipe() recipe_model
-        +recipe() recipe_model
+        +sub_recipe() receipt_model
+        +recipe() receipt_model
         +range() range_model
         +gross_weight() float
         +net_weight() float
         +create(item, range, gross_weight, net_weight)$ recipe_row_model
     }
 
-    class recipe_model {
+    class receipt_model {
         -nomenclature_model __dish
         -list __rows
         -str __comments
@@ -85,7 +85,7 @@ classDiagram
         +net_weight() float
         +add_row(row: recipe_row_model) bool
         +remove_row(row: recipe_row_model) bool
-        +create(name: str, dish: nomenclature_model, rows: list, comments: str)$ recipe_model
+        +create(name: str, dish: nomenclature_model, rows: list, comments: str)$ receipt_model
     }
 
     class abstract_manager {
@@ -126,7 +126,7 @@ classDiagram
         +add_range(item: range_model) bool
         +add_group(item: group_model) bool
         +add_nomenclature(item: nomenclature_model) bool
-        +add_recipe(item: recipe_model) bool
+        +add_recipe(item: receipt_model) bool
         -_is_unique(items: list, candidate) bool$
         +warehouses() list
         +ranges() list
@@ -142,7 +142,7 @@ classDiagram
     entity_model <|-- range_model : Наследование
     entity_model <|-- group_model : Наследование
     entity_model <|-- nomenclature_model : Наследование
-    entity_model <|-- recipe_model : Наследование
+    entity_model <|-- receipt_model : Наследование
 
     abstract_manager <|-- settings_manager : Наследование
     abstract_manager <|-- storage_manager : Наследование
@@ -152,16 +152,16 @@ classDiagram
     storage_manager o-- "0..*" range_model : Хранит
     storage_manager o-- "0..*" group_model : Хранит
     storage_manager o-- "0..*" nomenclature_model : Хранит
-    storage_manager o-- "0..*" recipe_model : Хранит
+    storage_manager o-- "0..*" receipt_model : Хранит
 
     nomenclature_model --> group_model : Группа
     nomenclature_model --> range_model : Ед. изм.
     range_model --> range_model : Базовая единица
 
-    recipe_model *-- "1..*" recipe_row_model : Состав
-    recipe_model --> nomenclature_model : Выходное блюдо/полуфабрикат
+    receipt_model *-- "1..*" recipe_row_model : Состав
+    receipt_model --> nomenclature_model : Выходное блюдо/полуфабрикат
     recipe_row_model --> nomenclature_model : Номенклатура / тара
-    recipe_row_model --> "0..1" recipe_model : Вложенный рецепт (блюдо в блюде)
+    recipe_row_model --> "0..1" receipt_model : Вложенный рецепт (блюдо в блюде)
     recipe_row_model --> range_model : Ед. изм.
 ```
 
@@ -216,19 +216,19 @@ class nomenclature_model {
 
 class recipe_row_model {
     - __nomenclature: nomenclature_model
-    - __sub_recipe: recipe_model
+    - __sub_recipe: receipt_model
     - __range: range_model
     - __gross_weight: float
     - __net_weight: float
     + nomenclature: nomenclature_model
-    + sub_recipe: recipe_model
+    + sub_recipe: receipt_model
     + range: range_model
     + gross_weight: float
     + net_weight: float
     + {static} create(item, range, gross, net): recipe_row_model
 }
 
-class recipe_model {
+class receipt_model {
     - __dish: nomenclature_model
     - __rows: list
     - __comments: str
@@ -239,7 +239,7 @@ class recipe_model {
     + net_weight: float (рекурсивный расчет)
     + add_row(row: recipe_row_model): bool
     + remove_row(row: recipe_row_model): bool
-    + {static} create(name: str, dish: nomenclature_model, rows: list, comments: str): recipe_model
+    + {static} create(name: str, dish: nomenclature_model, rows: list, comments: str): receipt_model
 }
 
 abstract class abstract_manager {
@@ -252,7 +252,7 @@ class storage_manager {
     + {static} __new__(): storage_manager
     + convert(): bool
     + first_start(file_name: str): bool
-    + add_recipe(item: recipe_model): bool
+    + add_recipe(item: receipt_model): bool
     + recipes: list
 }
 
@@ -262,16 +262,16 @@ entity_model <|-- warehouse_model
 entity_model <|-- range_model
 entity_model <|-- group_model
 entity_model <|-- nomenclature_model
-entity_model <|-- recipe_model
+entity_model <|-- receipt_model
 
 abstract_manager <|-- storage_manager
 
-recipe_model *-- recipe_row_model
-recipe_model --> nomenclature_model : dish
+receipt_model *-- recipe_row_model
+receipt_model --> nomenclature_model : dish
 recipe_row_model --> nomenclature_model : nomenclature
-recipe_row_model --> recipe_model : sub_recipe ("блюдо в блюде")
+recipe_row_model --> receipt_model : sub_recipe ("блюдо в блюде")
 recipe_row_model --> range_model : range
-storage_manager o-- recipe_model
+storage_manager o-- receipt_model
 @enduml
 ```
 
@@ -287,7 +287,7 @@ sequenceDiagram
     participant Sett as settings_manager (Singleton)
     participant RangeFactory as range_model (Фабрики create_*)
     participant RowFactory as recipe_row_model.create
-    participant RecipeFactory as recipe_model.create
+    participant RecipeFactory as receipt_model.create
 
     Client->>Store: first_start()
     Store->>Sett: settings_manager()
@@ -317,9 +317,9 @@ sequenceDiagram
 sequenceDiagram
     autonumber
     actor Client
-    participant ParentRecipe as recipe_model ("Песочное печенье в упаковке")
+    participant ParentRecipe as receipt_model ("Песочное печенье в упаковке")
     participant RowDough as recipe_row_model (sub_recipe)
-    participant NestedRecipe as recipe_model ("Песочное тесто")
+    participant NestedRecipe as receipt_model ("Песочное тесто")
     participant RowBox as recipe_row_model (упаковка)
 
     Client->>ParentRecipe: get gross_weight
