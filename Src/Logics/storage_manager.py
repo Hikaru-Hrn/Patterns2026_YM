@@ -5,8 +5,8 @@ from Src.Logics.settings_manager import settings_manager
 from Src.Models.group_model import group_model
 from Src.Models.nomenclature_model import nomenclature_model
 from Src.Models.range_model import range_model
-from Src.Models.recipe_model import recipe_model
-from Src.Models.recipe_row_model import recipe_row_model
+from Src.Models.receipt_model import receipt_model
+from Src.Models.receipt_row_model import recipe_row_model
 from Src.Models.warehouse_model import warehouse_model
 
 
@@ -103,9 +103,9 @@ class storage_manager(abstract_manager):
             return True
         return False
 
-    def add_recipe(self, item: recipe_model) -> bool:
+    def add_recipe(self, item: receipt_model) -> bool:
         """Добавляет технологическую карту (рецепт) с проверкой уникальности."""
-        validator.validate(item, recipe_model)
+        validator.validate(item, receipt_model)
         if self._is_unique(self._recipes, item):
             self._recipes.append(item)
             return True
@@ -129,7 +129,7 @@ class storage_manager(abstract_manager):
                 return r
         return None
 
-    def _find_recipe_by_name(self, name: str) -> recipe_model:
+    def _find_recipe_by_name(self, name: str) -> receipt_model:
         """Ищет объект технологической карты по наименованию."""
         for rec in self._recipes:
             if rec.name == name:
@@ -243,7 +243,7 @@ class storage_manager(abstract_manager):
 
             # --- 5. Технологические карты / Рецепты (через фабричный метод create) ---
             # Рецепт 1: Полуфабрикат «Песочное тесто»
-            recipe_dough = recipe_model.create(
+            recipe_dough = receipt_model.create(
                 name="Песочное тесто",
                 dish=nom_dough,
                 rows=[
@@ -257,7 +257,7 @@ class storage_manager(abstract_manager):
             self.add_recipe(recipe_dough)
 
             # Рецепт 2: Готовое блюдо с полуфабрикатом и упаковкой (принцип 'блюдо в блюде')
-            recipe_cookies = recipe_model.create(
+            recipe_cookies = receipt_model.create(
                 name="Песочное печенье в упаковке",
                 dish=nom_cookies_packaged,
                 rows=[
