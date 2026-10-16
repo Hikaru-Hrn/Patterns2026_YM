@@ -2,10 +2,10 @@ from Src.Core.entity_model import entity_model
 from Src.Core.exception import arguments_exception
 from Src.Core.validator import validator
 from Src.Models.nomenclature_model import nomenclature_model
-from Src.Models.recipe_row_model import recipe_row_model
+from Src.Models.receipt_row_model import recipe_row_model
 
 
-class recipe_model(entity_model):
+class receipt_model(entity_model):
     """Модель технологической карты (рецепта).
 
     Описывает состав блюда или полуфабриката, нормы закладки ингредиентов,
@@ -135,16 +135,16 @@ class recipe_model(entity_model):
 
     @staticmethod
     def create(name: str, dish: nomenclature_model, rows: list = None,
-               comments: str = "") -> "recipe_model":
+               comments: str = "") -> "receipt_model":
         """Фабричный метод создания технологической карты.
 
         :param name: Наименование технологической карты (до 50 символов).
         :param dish: Выходное блюдо или полуфабрикат.
         :param rows: Список строк рецепта (recipe_row_model).
         :param comments: Описание технологии приготовления.
-        :return: Заполненный экземпляр recipe_model.
+        :return: Заполненный экземпляр receipt_model.
         """
-        recipe = recipe_model()
+        recipe = receipt_model()
         recipe.name = name
         recipe.dish = dish
         if comments != "":
