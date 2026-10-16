@@ -4,8 +4,8 @@ from Src.Core.exception import arguments_exception
 from Src.Models.group_model import group_model
 from Src.Models.nomenclature_model import nomenclature_model
 from Src.Models.range_model import range_model
-from Src.Models.recipe_model import recipe_model
-from Src.Models.recipe_row_model import recipe_row_model
+from Src.Models.receipt_model import receipt_model
+from Src.Models.receipt_row_model import recipe_row_model
 from Src.Models.warehouse_model import warehouse_model
 
 
@@ -92,12 +92,12 @@ def test_valid_result_recipe_row_model_create_with_sub_recipe(sample_components)
     Проверяет создание строки рецепта со ссылкой на вложенный рецепт (блюдо в блюде).
 
     1. Создать базовый рецепт полуфабриката.
-    2. Создать строку рецепта, передав объект recipe_model в качестве item.
+    2. Создать строку рецепта, передав объект receipt_model в качестве item.
 
     <expected>row.sub_recipe ссылается на рецепт, row.nomenclature берется из dish.</expected>
     """
     r1 = recipe_row_model.create(sample_components["nom_flour"], sample_components["unit_g"], 200.0, 200.0)
-    sub_rec = recipe_model.create("Тесто", sample_components["nom_dough"], [r1])
+    sub_rec = receipt_model.create("Тесто", sample_components["nom_dough"], [r1])
 
     row = recipe_row_model.create(sub_rec)
     assert row.sub_recipe == sub_rec
@@ -152,18 +152,18 @@ def test_invalid_result_recipe_row_model_weight_type(sample_components, value):
 
 
 # =========================================================================
-# 2. Тестирование recipe_model: свойства, Брутто и Нетто (рекурсия)
+# 2. Тестирование receipt_model: свойства, Брутто и Нетто (рекурсия)
 # =========================================================================
 
-def test_valid_result_recipe_model_creation_and_properties(sample_components):
+def test_valid_result_receipt_model_creation_and_properties(sample_components):
     """
     Проверяет базовое создание рецепта через фабричный метод create.
 
-    1. Создать технологическую карту через recipe_model.create.
+    1. Создать технологическую карту через receipt_model.create.
 
     <expected>Имя, блюдо и комментарий соответствуют переданным значениям.</expected>
     """
-    recipe = recipe_model.create(
+    recipe = receipt_model.create(
         name="Песочное тесто",
         dish=sample_components["nom_dough"],
         comments="Базовый замес"
@@ -177,7 +177,7 @@ def test_valid_result_recipe_model_creation_and_properties(sample_components):
     assert recipe.net_weight == 0.0
 
 
-def test_valid_result_recipe_model_gross_and_net_weight_calculation(sample_components):
+def test_valid_result_receipt_model_gross_and_net_weight_calculation(sample_components):
     """
     Проверяет корректность расчета веса Брутто и Нетто путем сложения весов ингредиентов.
 
@@ -189,7 +189,7 @@ def test_valid_result_recipe_model_gross_and_net_weight_calculation(sample_compo
     r1 = recipe_row_model.create(sample_components["nom_flour"], sample_components["unit_g"], 250.0, 240.0)
     r2 = recipe_row_model.create(sample_components["nom_sugar"], sample_components["unit_g"], 100.0, 95.0)
 
-    recipe = recipe_model.create(
+    recipe = receipt_model.create(
         name="Тесто",
         dish=sample_components["nom_dough"],
         rows=[r1, r2]
@@ -199,7 +199,7 @@ def test_valid_result_recipe_model_gross_and_net_weight_calculation(sample_compo
     assert recipe.net_weight == 335.0
 
 
-def test_valid_result_recipe_model_add_row_increases_weight(sample_components):
+def test_valid_result_receipt_model_add_row_increases_weight(sample_components):
     """
     Проверяет динамическое увеличение веса Брутто и Нетто при добавлении нового ингредиента.
 
@@ -210,7 +210,7 @@ def test_valid_result_recipe_model_add_row_increases_weight(sample_components):
 
     <expected>Веса увеличиваются строго на вес добавленной строки.</expected>
     """
-    recipe = recipe_model()
+    recipe = receipt_model()
     recipe.name = "Рецепт"
     recipe.dish = sample_components["nom_dough"]
 
@@ -225,7 +225,7 @@ def test_valid_result_recipe_model_add_row_increases_weight(sample_components):
     assert recipe.net_weight == 335.0
 
 
-def test_valid_result_recipe_model_remove_row_decreases_weight(sample_components):
+def test_valid_result_receipt_model_remove_row_decreases_weight(sample_components):
     """
     Проверяет динамическое уменьшение веса Брутто и Нетто при исключении ингредиента из рецепта.
 
@@ -238,7 +238,7 @@ def test_valid_result_recipe_model_remove_row_decreases_weight(sample_components
     r1 = recipe_row_model.create(sample_components["nom_flour"], sample_components["unit_g"], 250.0, 240.0)
     r2 = recipe_row_model.create(sample_components["nom_sugar"], sample_components["unit_g"], 100.0, 95.0)
 
-    recipe = recipe_model.create(name="Рецепт", dish=sample_components["nom_dough"], rows=[r1, r2])
+    recipe = receipt_model.create(name="Рецепт", dish=sample_components["nom_dough"], rows=[r1, r2])
     assert recipe.gross_weight == 350.0
 
     removed = recipe.remove_row(r2)
@@ -248,7 +248,7 @@ def test_valid_result_recipe_model_remove_row_decreases_weight(sample_components
     assert recipe.net_weight == 240.0
 
 
-def test_valid_result_recipe_model_gross_and_net_weight_recursive(sample_components):
+def test_valid_result_receipt_model_gross_and_net_weight_recursive(sample_components):
     """
     Проверяет рекурсивный расчет веса Брутто и Нетто для составного рецепта (блюдо в блюде).
 
@@ -261,12 +261,12 @@ def test_valid_result_recipe_model_gross_and_net_weight_recursive(sample_compone
     """
     r1 = recipe_row_model.create(sample_components["nom_flour"], sample_components["unit_g"], 250.0, 240.0)
     r2 = recipe_row_model.create(sample_components["nom_sugar"], sample_components["unit_g"], 100.0, 95.0)
-    recipe_dough = recipe_model.create("Тесто", sample_components["nom_dough"], [r1, r2])
+    recipe_dough = receipt_model.create("Тесто", sample_components["nom_dough"], [r1, r2])
 
     row_dough = recipe_row_model.create(recipe_dough)
     row_box = recipe_row_model.create(sample_components["nom_box"], sample_components["unit_pcs"], 40.0, 40.0)
 
-    recipe_cookies = recipe_model.create(
+    recipe_cookies = receipt_model.create(
         name="Печенье в коробке",
         dish=sample_components["nom_cookie"],
         rows=[row_dough, row_box]
@@ -288,7 +288,7 @@ def test_valid_result_recipe_model_gross_and_net_weight_recursive(sample_compone
     assert recipe_cookies.net_weight == 425.0
 
 
-def test_valid_result_recipe_model_add_row_duplicate_rejected(sample_components):
+def test_valid_result_receipt_model_add_row_duplicate_rejected(sample_components):
     """
     Проверяет отклонение добавления дублирующейся строки с той же номенклатурой.
 
@@ -297,7 +297,7 @@ def test_valid_result_recipe_model_add_row_duplicate_rejected(sample_components)
 
     <expected>add_row возвращает False, в рецепте остается ровно 1 строка.</expected>
     """
-    recipe = recipe_model()
+    recipe = receipt_model()
     recipe.name = "Рецепт"
     recipe.dish = sample_components["nom_dough"]
 
@@ -309,7 +309,7 @@ def test_valid_result_recipe_model_add_row_duplicate_rejected(sample_components)
     assert len(recipe.rows) == 1
 
 
-def test_valid_result_recipe_model_add_row_self_reference_rejected(sample_components):
+def test_valid_result_receipt_model_add_row_self_reference_rejected(sample_components):
     """
     Проверяет защиту от добавления рецепта в самого себя (циклическая зависимость).
 
@@ -318,7 +318,7 @@ def test_valid_result_recipe_model_add_row_self_reference_rejected(sample_compon
 
     <expected>add_row возвращает False.</expected>
     """
-    recipe = recipe_model()
+    recipe = receipt_model()
     recipe.name = "Рецепт"
     recipe.dish = sample_components["nom_dough"]
 
@@ -326,7 +326,7 @@ def test_valid_result_recipe_model_add_row_self_reference_rejected(sample_compon
     assert recipe.add_row(row_self) is False
 
 
-def test_valid_result_recipe_model_remove_row_absent_returns_false(sample_components):
+def test_valid_result_receipt_model_remove_row_absent_returns_false(sample_components):
     """
     Проверяет удаление отсутствующей строки из рецепта.
 
@@ -334,7 +334,7 @@ def test_valid_result_recipe_model_remove_row_absent_returns_false(sample_compon
 
     <expected>remove_row возвращает False.</expected>
     """
-    recipe = recipe_model()
+    recipe = receipt_model()
     recipe.name = "Рецепт"
     recipe.dish = sample_components["nom_dough"]
 
@@ -352,7 +352,7 @@ def test_valid_result_domain_models_factory_methods():
 
     1. Вызвать метод create для group_model, range_model (включая create_gram, create_kilogram,
        create_piece, create_milliliter), warehouse_model, nomenclature_model,
-       recipe_row_model, recipe_model.
+       recipe_row_model, receipt_model.
     2. Убедиться, что возвращаются проинициализированные экземпляры с заполненными свойствами.
 
     <expected>Все созданные фабриками объекты валидны и содержат уникальный код.</expected>
@@ -392,7 +392,7 @@ def test_valid_result_domain_models_factory_methods():
     assert isinstance(row, recipe_row_model)
     assert row.gross_weight == 50.0
 
-    rec = recipe_model.create("Рецепт какао", nom, [row], "Горячий напиток")
-    assert isinstance(rec, recipe_model)
+    rec = receipt_model.create("Рецепт какао", nom, [row], "Горячий напиток")
+    assert isinstance(rec, receipt_model)
     assert rec.name == "Рецепт какао"
     assert rec.gross_weight == 50.0
