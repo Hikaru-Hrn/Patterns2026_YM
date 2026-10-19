@@ -1,76 +1,68 @@
 from html import escape
 
+from Src.Core.abstract_model import abstract_model
 from Src.Core.abstract_report import abstract_report
-from Src.Core.exception import arguments_exception
+from Src.Core.common import common
+from Src.Core.validator import validator
 from Src.Dtos.report_result_dto import report_result_dto
-from Src.Models.nomenclature_model import nomenclature_model
-from Src.Models.range_model import range_model
-from Src.Models.receipt_model import receipt_model
 
 
 class html_report(abstract_report):
-    """Реализация формирования отчета в формате HTML со структурированным текстовым выводом."""
+    """Реализация отчета в формате HTML со структурированным текстовым выводом."""
 
-    def build(self, source) -> report_result_dto:
-        """Формирует структурированный HTML-отчет.
+    @property
+    def media_type(self) -> str:
+        return "text/html; charset=utf-8"
 
-        :param source: receipt_model, nomenclature_model или range_model.
+    @property
+    def file_extension(self) -> str:
+        return "html"
+
+    @property
+    def is_attachment(self) -> bool:
+        return False
+
+    def build(self, source: abstract_model) -> report_result_dto:
+        """Формирует структурированный HTML-отчет по метаданным любой сущности через common.
+
+        :param source: Экземпляр доменной модели (наследник abstract_model).
         :return: report_result_dto со свойством text.
         """
-        if isinstance(source, receipt_model):
-            rows_html = ""
-            for item in source.items:
-                rows_html += (
-                    f"    <tr>\n"
-                    f"      <td>{escape(str(item.unique_code))}</td>\n"
-                    f"      <td>{escape(str(item.name))}</td>\n"
-                    f"      <td>{item.brutto}</td>\n"
-                    f"      <td>{item.netto}</td>\n"
-                    f"    </tr>\n"
-                )
-            content = (
-                f"<!DOCTYPE html>\n<html>\n<head><meta charset=\"utf-8\"><title>Рецепт: {escape(str(source.name))}</title></head>\n<body>\n"
-                f"<h2>Технологическая карта: {escape(str(source.name))}</h2>\n"
-                f"<table border=\"1\" cellpadding=\"5\" cellspacing=\"0\">\n"
-                f"  <thead>\n    <tr><th>Код</th><th>Наименование</th><th>Брутто</th><th>Нетто</th></tr>\n  </thead>\n"
-                f"  <tbody>\n{rows_html}  </tbody>\n"
-                f"  <tfoot>\n    <tr><th>ИТОГО</th><th>—</th><th>{source.gross_weight}</th><th>{source.net_weight}</th></tr>\n  </tfoot>\n"
-                f"</table>\n</body>\n</html>"
-            )
+        validator.validate(source, abstract_model)
 
-        elif isinstance(source, nomenclature_model):
-            grp_name = source.group.name if source.group else ""
-            rng_name = source.range.name if source.range else ""
-            content = (
-                f"<!DOCTYPE html>\n<html>\n<head><meta charset=\"utf-8\"><title>Номенклатура</title></head>\n<body>\n"
-                f"<h2>Номенклатура: {escape(str(source.name))}</h2>\n"
-                f"<table border=\"1\" cellpadding=\"5\" cellspacing=\"0\">\n"
-                f"  <tr><th>Код</th><td>{escape(str(source.unique_code))}</td></tr>\n"
-                f"  <tr><th>Наименование</th><td>{escape(str(source.name))}</td></tr>\n"
-                f"  <tr><th>Полное наименование</th><td>{escape(str(source.full_name))}</td></tr>\n"
-                f"  <tr><th>Группа</th><td>{escape(str(grp_name))}</td></tr>\n"
-                f"  <tr><th>Единица измерения</th><td>{escape(str(rng_name))}</td></tr>\n"
-                f"</table>\n</body>\n</html>"
-            )
+        headers = common.get_entity_header(source)
+        table_data = common.get_entity_table(source)
+        title = source.__class__.__name__
 
-        elif isinstance(source, range_model):
-            base_name = source.base.name if source.base else "Базовая"
-            content = (
-                f"<!DOCTYPE html>\n<html>\n<head><meta charset=\"utf-8\"><title>Единица измерения</title></head>\n<body>\n"
-                f"<h2>Единица измерения: {escape(str(source.name))}</h2>\n"
-                f"<table border=\"1\" cellpadding=\"5\" cellspacing=\"0\">\n"
-                f"  <tr><th>Код</th><td>{escape(str(source.unique_code))}</td></tr>\n"
-                f"  <tr><th>Наименование</th><td>{escape(str(source.name))}</td></tr>\n"
-                f"  <tr><th>Коэффициент</th><td>{source.conversion_factor}</td></tr>\n"
-                f"  <tr><th>Базовая единица</th><td>{escape(str(base_name))}</td></tr>\n"
-                f"</table>\n</body>\n</html>"
-            )
-        else:
-            raise arguments_exception(
-                "source",
-                f"Неподдерживаемый тип источника данных: {type(source).__name__}"
-            )
+        html_lines = [
+            "<!DOCTYPE html>",
+            "<html>",
+            f"<head><meta charset=\"utf-8\"><title>Отчет: {escape(title)}</title></head>",
+            "<body>",
+            f"<h2>Отчет по сущности: {escape(title)}</h2>",
+            "<table border=\"1\" cellpadding=\"5\" cellspacing=\"0\">",
+        ]
+
+        for h in headers:
+            html_lines.append(f"  <tr><th>{escape(str(h.field))}</th><td>{escape(str(h.value))}</td></tr>")
+
+        html_lines.append("</table>")
+
+        if table_data and len(table_data) > 0 and len(table_data[0].columns) > 0:
+            columns = table_data[0].columns
+            html_lines.append("<h3>Табличная часть</h3>")
+            html_lines.append("<table border=\"1\" cellpadding=\"5\" cellspacing=\"0\">")
+            html_lines.append("  <thead><tr>" + "".join([f"<th>{escape(str(col))}</th>" for col in columns]) + "</tr></thead>")
+            html_lines.append("  <tbody>")
+            for row in table_data:
+                html_lines.append("    <tr>" + "".join([f"<td>{escape(str(val))}</td>" for val in row.values]) + "</tr>")
+            html_lines.append("  </tbody>")
+            html_lines.append("</table>")
+
+        html_lines.append("</body>")
+        html_lines.append("</html>")
 
         result = report_result_dto()
-        result.text = content
+        result.text = "\n".join(html_lines)
+        result.format = self.media_type
         return result
