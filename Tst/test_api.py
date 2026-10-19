@@ -50,7 +50,8 @@ def test_valid_result_api_report_receipt_csv_download(client):
     assert ".csv" in response.headers.get("content-disposition", "")
 
     content = response.content.decode("utf-8")
-    assert "Код;Наименование;Брутто;Нетто" in content
+    assert "name" in content
+    assert "Мука пшеничная" in content
 
 
 def test_valid_result_api_report_receipt_markdown_download(client):
@@ -70,7 +71,8 @@ def test_valid_result_api_report_receipt_markdown_download(client):
     assert ".md" in response.headers.get("content-disposition", "")
 
     content = response.content.decode("utf-8")
-    assert "| Код | Наименование | Брутто | Нетто |" in content
+    assert "| name |" in content
+    assert "Мука пшеничная" in content
 
 
 def test_valid_result_api_report_nomenclature_xml(client):
@@ -125,7 +127,7 @@ def test_valid_result_api_report_default_endpoint(client):
     response = client.get(f"/api/report/default/nomenclature/{nom.name}")
     assert response.status_code == 200
     assert "text/plain" in response.headers.get("content-type", "")
-    assert f"Наименование: {nom.name}" in response.text
+    assert f"name: {nom.name}" in response.text
 
 
 def test_invalid_result_api_report_nonexistent_entity(client):

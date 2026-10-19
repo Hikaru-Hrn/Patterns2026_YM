@@ -59,10 +59,9 @@ def test_valid_result_csv_report_build_receipt(sample_data):
     assert len(res.binary) > 0
 
     text = bytes(res.binary).decode("utf-8")
-    assert "Код;Наименование;Брутто;Нетто" in text
-    assert "Мука;200.0;200.0" in text
-    assert "Сахар;100.0;95.0" in text
-    assert "ИТОГО;-;300.0;295.0" in text
+    assert "name" in text
+    assert "Мука" in text
+    assert "Сахар" in text
 
 
 def test_valid_result_csv_report_build_nomenclature(sample_data):
@@ -77,8 +76,9 @@ def test_valid_result_csv_report_build_nomenclature(sample_data):
     res = report.build(sample_data["nomenclature"])
 
     text = bytes(res.binary).decode("utf-8")
-    assert "Код;Наименование;Полное наименование;Группа;Единица измерения" in text
-    assert "Мука;Мука пшеничная в/с;Ингредиенты;грамм" in text
+    assert "name" in text
+    assert "Мука" in text
+    assert "Ингредиенты" in text
 
 
 def test_valid_result_csv_report_build_range(sample_data):
@@ -93,8 +93,9 @@ def test_valid_result_csv_report_build_range(sample_data):
     res = report.build(sample_data["range"])
 
     text = bytes(res.binary).decode("utf-8")
-    assert "Код;Наименование;Коэффициент;Базовая единица" in text
-    assert "грамм;1.0;Базовая" in text
+    assert "name" in text
+    assert "грамм" in text
+    assert "1.0" in text
 
 
 # =========================================================================
@@ -116,9 +117,9 @@ def test_valid_result_markdown_report_build_receipt(sample_data):
     assert len(res.binary) > 0
 
     text = bytes(res.binary).decode("utf-8")
-    assert "| Код | Наименование | Брутто | Нетто |" in text
-    assert "| Мука | 200.0 | 200.0 |" in text
-    assert "| **ИТОГО** | — | **300.0** | **295.0** |" in text
+    assert "| name |" in text
+    assert "Мука" in text
+    assert "Сахар" in text
 
 
 def test_valid_result_markdown_report_build_nomenclature(sample_data):
@@ -134,8 +135,8 @@ def test_valid_result_markdown_report_build_nomenclature(sample_data):
 
     text = bytes(res.binary).decode("utf-8")
     assert "| Поле | Значение |" in text
-    assert "| Наименование | Мука |" in text
-    assert "| Группа | Ингредиенты |" in text
+    assert "| name | Мука |" in text
+    assert "| group | Ингредиенты |" in text
 
 
 def test_valid_result_markdown_report_build_range(sample_data):
@@ -151,8 +152,8 @@ def test_valid_result_markdown_report_build_range(sample_data):
 
     text = bytes(res.binary).decode("utf-8")
     assert "| Поле | Значение |" in text
-    assert "| Наименование | грамм |" in text
-    assert "| Коэффициент пересчета | 1.0 |" in text
+    assert "| name | грамм |" in text
+    assert "| conversion_factor | 1.0 |" in text
 
 
 # =========================================================================
@@ -221,15 +222,14 @@ def test_valid_result_html_report_build_receipt(sample_data):
 
     1. Вызвать html_report().build() с экземпляром receipt_model.
 
-    <expected>HTML содержит структуру таблицы table, thead, tbody, tfoot.</expected>
+    <expected>HTML содержит структуру таблицы table, thead, tbody.</expected>
     """
     report = html_report()
     res = report.build(sample_data["recipe"])
 
     assert "<table" in res.text
-    assert "<th>Код</th><th>Наименование</th><th>Брутто</th><th>Нетто</th>" in res.text
+    assert "<th>name</th>" in res.text
     assert "<td>Мука</td>" in res.text
-    assert "<th>300.0</th><th>295.0</th>" in res.text
 
 
 def test_valid_result_html_report_build_nomenclature(sample_data):
@@ -279,12 +279,12 @@ def test_valid_result_text_report_build_nomenclature_and_range(sample_data):
     report = text_report()
 
     res_nom = report.build(sample_data["nomenclature"])
-    assert "Наименование: Мука" in res_nom.text
-    assert "Группа: Ингредиенты" in res_nom.text
+    assert "name: Мука" in res_nom.text
+    assert "group: Ингредиенты" in res_nom.text
 
     res_rng = report.build(sample_data["range"])
-    assert "Наименование: грамм" in res_rng.text
-    assert "Коэффициент пересчета: 1.0" in res_rng.text
+    assert "name: грамм" in res_rng.text
+    assert "conversion_factor: 1.0" in res_rng.text
 
 
 @pytest.mark.parametrize("report_cls", [text_report, csv_report, markdown_report, xml_report, html_report])

@@ -119,4 +119,4 @@ def test_valid_result_report_factory_build_output_empty_recipe():
     result = report.build(empty_recipe)
 
     assert isinstance(result, report_result_dto)
-    assert "Код | Наименование | Брутто | Нетто" in result.text
+    assert "name: Пустой рецепт" in result.text
