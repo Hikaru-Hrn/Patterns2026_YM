@@ -1,6 +1,6 @@
 # UML диаграммы для моделей данных, менеджеров и фабрики отчетов
 
-В данном документе представлены UML-диаграммы классов и последовательностей, описывающие архитектуру приложения, доменных моделей (технологические карты/рецепты, полуфабрикаты, тара, фабричные методы), менеджеров настроек и хранилища данных, а также подсистемы формирования отчетов (паттерн Factory Method, форматы CSV, Markdown, XML, HTML, TXT, REST API).
+В данном документе представлены UML-диаграммы классов и последовательностей, описывающие архитектуру приложения, доменных моделей (технологические карты/рецепты, полуфабрикаты, тара, фабричные методы), менеджеров настроек и хранилища данных, а также подсистемы формирования отчетов (паттерн Factory Method, форматы CSV, Markdown, XML, HTML, TXT, рефлексия метаданных через `common`, полиморфный REST API).
 
 ---
 
@@ -92,6 +92,26 @@ classDiagram
         +create(name: str, dish: nomenclature_model, rows: list, comments: str)$ receipt_model
     }
 
+    class common {
+        +get_fields(source, is_common: bool)$ list
+        +get_entity_header(source: abstract_model)$ list~entity_description_header_dto~
+        +get_entity_table(source: abstract_model)$ list~entity_description_table_dto~
+    }
+
+    class entity_description_header_dto {
+        -str __field
+        -str __value
+        +field() str
+        +value() str
+    }
+
+    class entity_description_table_dto {
+        -list __columns
+        -list __values
+        +columns() list
+        +values() list
+    }
+
     class abstract_manager {
         <<abstract>>
         #str _file_name
@@ -166,32 +186,53 @@ classDiagram
     class report_result_dto {
         -str __text
         -list __binary
+        -str __format
         +text() str
         +binary() list
+        +format() str
     }
 
     class abstract_report {
         <<abstract>>
         +build(source: abstract_model)* report_result_dto
+        +media_type()* str
+        +file_extension()* str
+        +is_attachment() bool
+        +create_response(result, filename_prefix) Response
     }
 
     class text_report {
+        +media_type() str
+        +file_extension() str
+        +is_attachment() bool
         +build(source: abstract_model) report_result_dto
     }
 
     class csv_report {
+        +media_type() str
+        +file_extension() str
+        +is_attachment() bool
         +build(source: abstract_model) report_result_dto
     }
 
     class markdown_report {
+        +media_type() str
+        +file_extension() str
+        +is_attachment() bool
         +build(source: abstract_model) report_result_dto
     }
 
     class xml_report {
+        +media_type() str
+        +file_extension() str
+        +is_attachment() bool
         +build(source: abstract_model) report_result_dto
     }
 
     class html_report {
+        +media_type() str
+        +file_extension() str
+        +is_attachment() bool
         +build(source: abstract_model) report_result_dto
     }
 
@@ -234,6 +275,9 @@ classDiagram
     report_factory ..> abstract_report : Создает
     report_factory ..> report_type_enum : Использует
     abstract_report ..> report_result_dto : Формирует
+    abstract_report ..> common : Извлекает метаданные моделей
+    common ..> entity_description_header_dto : Формирует заголовки
+    common ..> entity_description_table_dto : Формирует таблицы
 
     storage_manager ..> settings_manager : Singleton call
     storage_manager o-- "0..*" warehouse_model : Хранит
@@ -259,43 +303,52 @@ classDiagram
 @startuml
 skinparam classAttributeIconSize 0
 
-enum report_type_enum {
-    TXT
-    CSV
-    MARKDOWN
-    XML
-    HTML
-    + {static} from_string(value: str): report_type_enum
-}
-
-class report_result_dto {
-    - __text: str
-    - __binary: list
-    + text: str
-    + binary: list
+class common {
+    + {static} get_fields(source, is_common): list
+    + {static} get_entity_header(source): list
+    + {static} get_entity_table(source): list
 }
 
 abstract class abstract_report {
     + {abstract} build(source: abstract_model): report_result_dto
+    + {abstract} media_type: str
+    + {abstract} file_extension: str
+    + is_attachment: bool
+    + create_response(result, filename): Response
 }
 
 class text_report {
+    + media_type: str = "text/plain"
+    + file_extension: str = "txt"
+    + is_attachment: bool = false
     + build(source: abstract_model): report_result_dto
 }
 
 class csv_report {
+    + media_type: str = "text/csv"
+    + file_extension: str = "csv"
+    + is_attachment: bool = true
     + build(source: abstract_model): report_result_dto
 }
 
 class markdown_report {
+    + media_type: str = "text/markdown"
+    + file_extension: str = "md"
+    + is_attachment: bool = true
     + build(source: abstract_model): report_result_dto
 }
 
 class xml_report {
+    + media_type: str = "application/xml"
+    + file_extension: str = "xml"
+    + is_attachment: bool = false
     + build(source: abstract_model): report_result_dto
 }
 
 class html_report {
+    + media_type: str = "text/html"
+    + file_extension: str = "html"
+    + is_attachment: bool = false
     + build(source: abstract_model): report_result_dto
 }
 
@@ -318,16 +371,16 @@ abstract_report <|-- markdown_report
 abstract_report <|-- xml_report
 abstract_report <|-- html_report
 
+abstract_report ..> common : uses reflection
 abstract_report_factory <|-- report_factory
 report_factory ..> abstract_report : creates
 report_factory o-- settings_model : encapsulates
-abstract_report ..> report_result_dto : returns
 @enduml
 ```
 
 ---
 
-## 2. Диаграмма последовательности: Формирование отчета через REST API
+## 2. Диаграмма последовательности: Универсальное построение отчета через `common`
 
 ```mermaid
 sequenceDiagram
@@ -336,21 +389,27 @@ sequenceDiagram
     participant API as FastAPI Router (main.py)
     participant Storage as storage_manager (Singleton)
     participant Factory as report_factory
-    participant Report as Конкретный отчет (csv, md, xml, html, txt)
+    participant Report as Построитель отчета (csv / md / xml / html / txt)
+    participant Common as Сервис рефлексии (common)
     participant Result as report_result_dto
 
     Client->>API: GET /api/report/receipt/Песочное тесто?format=CSV
     API->>Storage: find_entity("receipt", "Песочное тесто")
     Storage-->>API: receipt_instance
-    API->>Factory: report_factory()
     API->>Factory: create(report_type_enum.CSV)
     Factory-->>API: csv_report_instance
     API->>Report: build(receipt_instance)
-    Report->>Result: report_result_dto (binary=[...])
+    Note over Report,Common: Универсальное извлечение данных без if isinstance
+    Report->>Common: get_entity_header(receipt_instance)
+    Common-->>Report: headers (field, value)
+    Report->>Common: get_entity_table(receipt_instance)
+    Common-->>Report: table_data (columns, values)
+    Report->>Result: report_result_dto (binary=[...], format="text/csv")
     Result-->>Report: dto
     Report-->>API: dto
-    Note over API,Client: Формат CSV/Markdown -> скачивание файла (attachment)
-    API-->>Client: HTTP 200 OK (Content-Disposition: attachment; filename="report.csv")
+    API->>Report: create_response(dto, filename)
+    Note over Report,API: Полиморфное создание Response без if в main.py
+    Report-->>Client: HTTP 200 OK (Content-Disposition: attachment; filename="report.csv")
 ```
 
 ---
@@ -374,6 +433,7 @@ sequenceDiagram
     Settings-->>Factory: format
     Factory->>Factory: create(format)
     Factory-->>API: markdown_report_instance
-    API->>API: report.build(nom_instance)
-    API-->>Client: HTTP 200 OK (скачивание .md файла согласно настройкам)
+    API->>Report: build(nom_instance)
+    API->>Report: create_response(dto, filename)
+    Report-->>Client: HTTP 200 OK (скачивание .md файла согласно настройкам)
 ```
