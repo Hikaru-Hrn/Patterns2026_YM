@@ -1,6 +1,5 @@
 import uvicorn
-from urllib.parse import quote
-from fastapi import FastAPI, HTTPException, Query, Response, status
+from fastapi import FastAPI, HTTPException, Query, status
 
 from Src.Core.exception import base_exception
 from Src.Dtos.report_type_enum import report_type_enum
@@ -36,46 +35,6 @@ def _ensure_storage_loaded() -> None:
     storage.first_start(SETTINGS_FILE)
 
 
-def _build_response_for_report(result, report_type: report_type_enum, filename_prefix: str) -> Response:
-    """Вспомогательная функция формирования HTTP-ответа по результатам отчета.
-
-    Для Markdown и CSV формирует бинарный ответ со скачиванием файла (attachment).
-    Для XML, HTML и TXT возвращает структурированный текст с соответствующим media_type.
-    """
-    if report_type in (report_type_enum.CSV, report_type_enum.MARKDOWN):
-        ext = "csv" if report_type == report_type_enum.CSV else "md"
-        media_type = "text/csv; charset=utf-8" if report_type == report_type_enum.CSV else "text/markdown; charset=utf-8"
-        content_bytes = bytes(result.binary) if result.binary else result.text.encode("utf-8")
-        
-        # Безопасное кодирование заголовка Content-Disposition по RFC 5987 (для кириллицы)
-        encoded_filename = quote(f"{filename_prefix}.{ext}")
-        disposition = f"attachment; filename=\"report.{ext}\"; filename*=utf-8''{encoded_filename}"
-
-        return Response(
-            content=content_bytes,
-            media_type=media_type,
-            headers={"Content-Disposition": disposition},
-        )
-
-    if report_type == report_type_enum.XML:
-        return Response(
-            content=result.text,
-            media_type="application/xml; charset=utf-8",
-        )
-
-    if report_type == report_type_enum.HTML:
-        return Response(
-            content=result.text,
-            media_type="text/html; charset=utf-8",
-        )
-
-    # По умолчанию TXT
-    return Response(
-        content=result.text,
-        media_type="text/plain; charset=utf-8",
-    )
-
-
 @app.get("/")
 @app.post("/")
 async def root():
@@ -84,7 +43,7 @@ async def root():
 
 @app.get(
     "/api/get_report",
-    summary="Получить отчет (устаревший эндпоинт)",
+    summary="Получить текстовый отчет по рецепту (устаревший эндпоинт)",
     tags=["Отчеты"],
     status_code=status.HTTP_200_OK,
 )
@@ -139,15 +98,10 @@ def get_entity_report(
     unique_code: str,
     format: str = Query("TXT", description="Формат отчета: CSV, Markdown, XML, TXT, HTML"),
 ):
-    """Формирует отчет в указанном формате для заданной сущности.
-
-    Для типов Markdown и CSV формируются бинарные данные и выполняется скачивание файла.
-    Для остальных форматов отдается структурированный текст.
-    """
+    """Формирует отчет в указанном формате с полиморфным созданием ответа."""
     _ensure_storage_loaded()
     storage = storage_manager()
 
-    # Поиск сущности
     try:
         entity = storage.find_entity(entity_type, unique_code)
     except base_exception as e:
@@ -159,21 +113,18 @@ def get_entity_report(
             detail=f"Сущность типа '{entity_type}' с кодом '{unique_code}' не найдена",
         )
 
-    # Определение формата
     try:
         rep_type = report_type_enum.from_string(format)
     except base_exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
 
-    # Построение отчета
     try:
         factory = report_factory()
         report = factory.create(rep_type)
         result = report.build(entity)
+        return report.create_response(result, f"report_{entity_type}_{unique_code}")
     except base_exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
-
-    return _build_response_for_report(result, rep_type, f"report_{entity_type}_{unique_code}")
 
 
 @app.get(
@@ -205,12 +156,10 @@ def get_entity_report_default(
     try:
         factory = report_factory()
         report = factory.create_default()
-        rep_type = factory.settings.response_format
         result = report.build(entity)
+        return report.create_response(result, f"default_report_{entity_type}_{unique_code}")
     except base_exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
-
-    return _build_response_for_report(result, rep_type, f"default_report_{entity_type}_{unique_code}")
 
 
 if __name__ == "__main__":
