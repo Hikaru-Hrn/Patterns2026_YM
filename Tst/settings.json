@@ -8,5 +8,6 @@
     },
     "boss_name": "Иванов И. И",
     "account_name": "Семёнов А. Г.",
-    "first_launch_flag": true
+    "first_launch_flag": true,
+    "response_format": "Markdown"
 }

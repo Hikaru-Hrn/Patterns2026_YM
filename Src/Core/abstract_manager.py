@@ -1,4 +1,5 @@
 from abc import ABC
+from Src.Core.validator import validator
 
 
 class abstract_manager(ABC):
@@ -21,3 +22,7 @@ class abstract_manager(ABC):
         """Возвращает флаг готовности и успешной загрузки данных."""
         return self._is_loaded
 
+    @is_loaded.setter
+    def is_loaded(self, value: bool) -> None:
+        validator.validate(value, bool)
+        self._is_loaded = value
