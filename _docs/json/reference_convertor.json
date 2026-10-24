@@ -1,0 +1,15 @@
+{
+  "unique_code": "nomenclature-flour",
+  "name": "Мука",
+  "full_name": "Мука пшеничная высший сорт",
+  "group": {
+    "unique_code": "group-ingredients",
+    "name": "Ингредиенты"
+  },
+  "range": {
+    "unique_code": "range-gram",
+    "name": "грамм",
+    "base": null,
+    "conversion_factor": 1.0
+  }
+}
