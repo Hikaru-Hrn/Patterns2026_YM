@@ -1,0 +1,552 @@
+{
+  "warehouses": [
+    {
+      "unique_code": "c57038dd3f894e6d90801d3a2bb703b7",
+      "name": "Основной склад",
+      "address": "г. Москва, ул. Складская, 1"
+    },
+    {
+      "unique_code": "ac470501156747e3ae39927f1d81377e",
+      "name": "Кухня/Производство",
+      "address": "г. Москва, Цех 2"
+    }
+  ],
+  "ranges": [
+    {
+      "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+      "name": "грамм",
+      "base": null,
+      "conversion_factor": 1.0
+    },
+    {
+      "unique_code": "ab41ca68a1214d79a01bd4d40ab70289",
+      "name": "килограмм",
+      "base": {
+        "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+        "name": "грамм",
+        "base": null,
+        "conversion_factor": 1.0
+      },
+      "conversion_factor": 1000.0
+    },
+    {
+      "unique_code": "cb694d98a39a42a0b0c8db74b39f11c4",
+      "name": "штука",
+      "base": null,
+      "conversion_factor": 1.0
+    },
+    {
+      "unique_code": "3c7ab70ae22b492da42a47d06adc7e56",
+      "name": "миллилитр",
+      "base": null,
+      "conversion_factor": 1.0
+    }
+  ],
+  "groups": [
+    {
+      "unique_code": "bc39562af5574974b4a3de8236c6bb2d",
+      "name": "Ингредиенты"
+    },
+    {
+      "unique_code": "3567ef675c4c4acbb441c3c9d647ec3f",
+      "name": "Полуфабрикаты"
+    },
+    {
+      "unique_code": "56bced5df1b247c0952e315f4b07fd61",
+      "name": "Готовые блюда"
+    },
+    {
+      "unique_code": "734bb6aeeedb4f51a53d588629acb939",
+      "name": "Тара и упаковка"
+    }
+  ],
+  "nomenclatures": [
+    {
+      "unique_code": "2cc2be85fe7443efbe7aae4380f65f5a",
+      "name": "Мука пшеничная",
+      "full_name": "Мука пшеничная высший сорт",
+      "group": {
+        "unique_code": "bc39562af5574974b4a3de8236c6bb2d",
+        "name": "Ингредиенты"
+      },
+      "range": {
+        "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+        "name": "грамм",
+        "base": null,
+        "conversion_factor": 1.0
+      }
+    },
+    {
+      "unique_code": "a5f1b3175d08404aacb46ae4f3331043",
+      "name": "Сливочное масло",
+      "full_name": "Сливочное масло 82.5%",
+      "group": {
+        "unique_code": "bc39562af5574974b4a3de8236c6bb2d",
+        "name": "Ингредиенты"
+      },
+      "range": {
+        "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+        "name": "грамм",
+        "base": null,
+        "conversion_factor": 1.0
+      }
+    },
+    {
+      "unique_code": "8a734fdf29f84b1ba19bfd3ec55e607f",
+      "name": "Сахар",
+      "full_name": "Сахар белый кристаллический",
+      "group": {
+        "unique_code": "bc39562af5574974b4a3de8236c6bb2d",
+        "name": "Ингредиенты"
+      },
+      "range": {
+        "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+        "name": "грамм",
+        "base": null,
+        "conversion_factor": 1.0
+      }
+    },
+    {
+      "unique_code": "bf7cf307b631408f99d0d28bf732ece4",
+      "name": "Яйцо куриное",
+      "full_name": "Яйцо куриное категории С0",
+      "group": {
+        "unique_code": "bc39562af5574974b4a3de8236c6bb2d",
+        "name": "Ингредиенты"
+      },
+      "range": {
+        "unique_code": "cb694d98a39a42a0b0c8db74b39f11c4",
+        "name": "штука",
+        "base": null,
+        "conversion_factor": 1.0
+      }
+    },
+    {
+      "unique_code": "6ee8e518ad58410886d6a236074e84af",
+      "name": "Песочное тесто",
+      "full_name": "Песочное тесто (полуфабрикат кулинарный)",
+      "group": {
+        "unique_code": "3567ef675c4c4acbb441c3c9d647ec3f",
+        "name": "Полуфабрикаты"
+      },
+      "range": {
+        "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+        "name": "грамм",
+        "base": null,
+        "conversion_factor": 1.0
+      }
+    },
+    {
+      "unique_code": "ea5f829873f74046ad01a588dda779c1",
+      "name": "Коробка крафтовая",
+      "full_name": "Коробка крафтовая для кондитерских изделий",
+      "group": {
+        "unique_code": "734bb6aeeedb4f51a53d588629acb939",
+        "name": "Тара и упаковка"
+      },
+      "range": {
+        "unique_code": "cb694d98a39a42a0b0c8db74b39f11c4",
+        "name": "штука",
+        "base": null,
+        "conversion_factor": 1.0
+      }
+    },
+    {
+      "unique_code": "03674b06e0ff4797b0df7e76aedb210a",
+      "name": "Песочное печенье",
+      "full_name": "Песочное печенье в крафтовой упаковке",
+      "group": {
+        "unique_code": "56bced5df1b247c0952e315f4b07fd61",
+        "name": "Готовые блюда"
+      },
+      "range": {
+        "unique_code": "cb694d98a39a42a0b0c8db74b39f11c4",
+        "name": "штука",
+        "base": null,
+        "conversion_factor": 1.0
+      }
+    }
+  ],
+  "recipes": [
+    {
+      "unique_code": "67704a3f445043069256e001e189eb99",
+      "name": "Песочное тесто",
+      "dish": {
+        "unique_code": "6ee8e518ad58410886d6a236074e84af",
+        "name": "Песочное тесто",
+        "full_name": "Песочное тесто (полуфабрикат кулинарный)",
+        "group": {
+          "unique_code": "3567ef675c4c4acbb441c3c9d647ec3f",
+          "name": "Полуфабрикаты"
+        },
+        "range": {
+          "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+          "name": "грамм",
+          "base": null,
+          "conversion_factor": 1.0
+        }
+      },
+      "comments": "Приготовление пластичного песочного теста",
+      "rows": [
+        {
+          "unique_code": "d69b55a0850e4a9ca60d8c89d9185cb7",
+          "nomenclature": {
+            "unique_code": "2cc2be85fe7443efbe7aae4380f65f5a",
+            "name": "Мука пшеничная",
+            "full_name": "Мука пшеничная высший сорт",
+            "group": {
+              "unique_code": "bc39562af5574974b4a3de8236c6bb2d",
+              "name": "Ингредиенты"
+            },
+            "range": {
+              "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+              "name": "грамм",
+              "base": null,
+              "conversion_factor": 1.0
+            }
+          },
+          "sub_recipe": null,
+          "recipe": null,
+          "range": {
+            "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+            "name": "грамм",
+            "base": null,
+            "conversion_factor": 1.0
+          },
+          "gross_weight": 250.0,
+          "brutto": 250.0,
+          "net_weight": 250.0,
+          "netto": 250.0,
+          "name": "Мука пшеничная"
+        },
+        {
+          "unique_code": "da6e3ff521524fe1bdc097524bde2dd3",
+          "nomenclature": {
+            "unique_code": "a5f1b3175d08404aacb46ae4f3331043",
+            "name": "Сливочное масло",
+            "full_name": "Сливочное масло 82.5%",
+            "group": {
+              "unique_code": "bc39562af5574974b4a3de8236c6bb2d",
+              "name": "Ингредиенты"
+            },
+            "range": {
+              "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+              "name": "грамм",
+              "base": null,
+              "conversion_factor": 1.0
+            }
+          },
+          "sub_recipe": null,
+          "recipe": null,
+          "range": {
+            "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+            "name": "грамм",
+            "base": null,
+            "conversion_factor": 1.0
+          },
+          "gross_weight": 150.0,
+          "brutto": 150.0,
+          "net_weight": 150.0,
+          "netto": 150.0,
+          "name": "Сливочное масло"
+        },
+        {
+          "unique_code": "c368b2db75aa45ab9305c3d2cbfe9a54",
+          "nomenclature": {
+            "unique_code": "8a734fdf29f84b1ba19bfd3ec55e607f",
+            "name": "Сахар",
+            "full_name": "Сахар белый кристаллический",
+            "group": {
+              "unique_code": "bc39562af5574974b4a3de8236c6bb2d",
+              "name": "Ингредиенты"
+            },
+            "range": {
+              "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+              "name": "грамм",
+              "base": null,
+              "conversion_factor": 1.0
+            }
+          },
+          "sub_recipe": null,
+          "recipe": null,
+          "range": {
+            "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+            "name": "грамм",
+            "base": null,
+            "conversion_factor": 1.0
+          },
+          "gross_weight": 100.0,
+          "brutto": 100.0,
+          "net_weight": 100.0,
+          "netto": 100.0,
+          "name": "Сахар"
+        },
+        {
+          "unique_code": "99cce62f5b2643fa8fcfde8935e1c349",
+          "nomenclature": {
+            "unique_code": "bf7cf307b631408f99d0d28bf732ece4",
+            "name": "Яйцо куриное",
+            "full_name": "Яйцо куриное категории С0",
+            "group": {
+              "unique_code": "bc39562af5574974b4a3de8236c6bb2d",
+              "name": "Ингредиенты"
+            },
+            "range": {
+              "unique_code": "cb694d98a39a42a0b0c8db74b39f11c4",
+              "name": "штука",
+              "base": null,
+              "conversion_factor": 1.0
+            }
+          },
+          "sub_recipe": null,
+          "recipe": null,
+          "range": {
+            "unique_code": "cb694d98a39a42a0b0c8db74b39f11c4",
+            "name": "штука",
+            "base": null,
+            "conversion_factor": 1.0
+          },
+          "gross_weight": 60.0,
+          "brutto": 60.0,
+          "net_weight": 50.0,
+          "netto": 50.0,
+          "name": "Яйцо куриное"
+        }
+      ],
+      "gross_weight": 560.0,
+      "net_weight": 550.0
+    },
+    {
+      "unique_code": "8c76224a020a4b04af0cf808cd5c0128",
+      "name": "Песочное печенье в упаковке",
+      "dish": {
+        "unique_code": "03674b06e0ff4797b0df7e76aedb210a",
+        "name": "Песочное печенье",
+        "full_name": "Песочное печенье в крафтовой упаковке",
+        "group": {
+          "unique_code": "56bced5df1b247c0952e315f4b07fd61",
+          "name": "Готовые блюда"
+        },
+        "range": {
+          "unique_code": "cb694d98a39a42a0b0c8db74b39f11c4",
+          "name": "штука",
+          "base": null,
+          "conversion_factor": 1.0
+        }
+      },
+      "comments": "Выпекание печенья из полуфабриката теста и упаковка в крафтовую коробку",
+      "rows": [
+        {
+          "unique_code": "9735b3c924a8459681a5436279d1e2af",
+          "nomenclature": {
+            "unique_code": "6ee8e518ad58410886d6a236074e84af",
+            "name": "Песочное тесто",
+            "full_name": "Песочное тесто (полуфабрикат кулинарный)",
+            "group": {
+              "unique_code": "3567ef675c4c4acbb441c3c9d647ec3f",
+              "name": "Полуфабрикаты"
+            },
+            "range": {
+              "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+              "name": "грамм",
+              "base": null,
+              "conversion_factor": 1.0
+            }
+          },
+          "sub_recipe": {
+            "unique_code": "67704a3f445043069256e001e189eb99",
+            "name": "Песочное тесто",
+            "dish": {
+              "unique_code": "6ee8e518ad58410886d6a236074e84af",
+              "name": "Песочное тесто",
+              "full_name": "Песочное тесто (полуфабрикат кулинарный)",
+              "group": {
+                "unique_code": "3567ef675c4c4acbb441c3c9d647ec3f",
+                "name": "Полуфабрикаты"
+              },
+              "range": {
+                "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+                "name": "грамм",
+                "base": null,
+                "conversion_factor": 1.0
+              }
+            },
+            "comments": "Приготовление пластичного песочного теста",
+            "rows": [
+              {
+                "unique_code": "d69b55a0850e4a9ca60d8c89d9185cb7",
+                "nomenclature": {
+                  "unique_code": "2cc2be85fe7443efbe7aae4380f65f5a",
+                  "name": "Мука пшеничная",
+                  "full_name": "Мука пшеничная высший сорт",
+                  "group": {
+                    "unique_code": "bc39562af5574974b4a3de8236c6bb2d",
+                    "name": "Ингредиенты"
+                  },
+                  "range": {
+                    "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+                    "name": "грамм",
+                    "base": null,
+                    "conversion_factor": 1.0
+                  }
+                },
+                "sub_recipe": null,
+                "recipe": null,
+                "range": {
+                  "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+                  "name": "грамм",
+                  "base": null,
+                  "conversion_factor": 1.0
+                },
+                "gross_weight": 250.0,
+                "brutto": 250.0,
+                "net_weight": 250.0,
+                "netto": 250.0,
+                "name": "Мука пшеничная"
+              },
+              {
+                "unique_code": "da6e3ff521524fe1bdc097524bde2dd3",
+                "nomenclature": {
+                  "unique_code": "a5f1b3175d08404aacb46ae4f3331043",
+                  "name": "Сливочное масло",
+                  "full_name": "Сливочное масло 82.5%",
+                  "group": {
+                    "unique_code": "bc39562af5574974b4a3de8236c6bb2d",
+                    "name": "Ингредиенты"
+                  },
+                  "range": {
+                    "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+                    "name": "грамм",
+                    "base": null,
+                    "conversion_factor": 1.0
+                  }
+                },
+                "sub_recipe": null,
+                "recipe": null,
+                "range": {
+                  "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+                  "name": "грамм",
+                  "base": null,
+                  "conversion_factor": 1.0
+                },
+                "gross_weight": 150.0,
+                "brutto": 150.0,
+                "net_weight": 150.0,
+                "netto": 150.0,
+                "name": "Сливочное масло"
+              },
+              {
+                "unique_code": "c368b2db75aa45ab9305c3d2cbfe9a54",
+                "nomenclature": {
+                  "unique_code": "8a734fdf29f84b1ba19bfd3ec55e607f",
+                  "name": "Сахар",
+                  "full_name": "Сахар белый кристаллический",
+                  "group": {
+                    "unique_code": "bc39562af5574974b4a3de8236c6bb2d",
+                    "name": "Ингредиенты"
+                  },
+                  "range": {
+                    "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+                    "name": "грамм",
+                    "base": null,
+                    "conversion_factor": 1.0
+                  }
+                },
+                "sub_recipe": null,
+                "recipe": null,
+                "range": {
+                  "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+                  "name": "грамм",
+                  "base": null,
+                  "conversion_factor": 1.0
+                },
+                "gross_weight": 100.0,
+                "brutto": 100.0,
+                "net_weight": 100.0,
+                "netto": 100.0,
+                "name": "Сахар"
+              },
+              {
+                "unique_code": "99cce62f5b2643fa8fcfde8935e1c349",
+                "nomenclature": {
+                  "unique_code": "bf7cf307b631408f99d0d28bf732ece4",
+                  "name": "Яйцо куриное",
+                  "full_name": "Яйцо куриное категории С0",
+                  "group": {
+                    "unique_code": "bc39562af5574974b4a3de8236c6bb2d",
+                    "name": "Ингредиенты"
+                  },
+                  "range": {
+                    "unique_code": "cb694d98a39a42a0b0c8db74b39f11c4",
+                    "name": "штука",
+                    "base": null,
+                    "conversion_factor": 1.0
+                  }
+                },
+                "sub_recipe": null,
+                "recipe": null,
+                "range": {
+                  "unique_code": "cb694d98a39a42a0b0c8db74b39f11c4",
+                  "name": "штука",
+                  "base": null,
+                  "conversion_factor": 1.0
+                },
+                "gross_weight": 60.0,
+                "brutto": 60.0,
+                "net_weight": 50.0,
+                "netto": 50.0,
+                "name": "Яйцо куриное"
+              }
+            ],
+            "gross_weight": 560.0,
+            "net_weight": 550.0
+          },
+          "range": {
+            "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+            "name": "грамм",
+            "base": null,
+            "conversion_factor": 1.0
+          },
+          "gross_weight": 560.0,
+          "brutto": 560.0,
+          "net_weight": 550.0,
+          "netto": 550.0,
+          "name": "Песочное тесто"
+        },
+        {
+          "unique_code": "c60134c9f48c4f72ba7ebd7cfc0b7d43",
+          "nomenclature": {
+            "unique_code": "ea5f829873f74046ad01a588dda779c1",
+            "name": "Коробка крафтовая",
+            "full_name": "Коробка крафтовая для кондитерских изделий",
+            "group": {
+              "unique_code": "734bb6aeeedb4f51a53d588629acb939",
+              "name": "Тара и упаковка"
+            },
+            "range": {
+              "unique_code": "cb694d98a39a42a0b0c8db74b39f11c4",
+              "name": "штука",
+              "base": null,
+              "conversion_factor": 1.0
+            }
+          },
+          "sub_recipe": null,
+          "recipe": null,
+          "range": {
+            "unique_code": "cb694d98a39a42a0b0c8db74b39f11c4",
+            "name": "штука",
+            "base": null,
+            "conversion_factor": 1.0
+          },
+          "gross_weight": 40.0,
+          "brutto": 40.0,
+          "net_weight": 40.0,
+          "netto": 40.0,
+          "name": "Коробка крафтовая"
+        }
+      ],
+      "gross_weight": 600.0,
+      "net_weight": 590.0
+    }
+  ]
+}
