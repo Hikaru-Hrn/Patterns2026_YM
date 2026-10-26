@@ -1,9 +1,11 @@
 import json
+import uuid
 from datetime import datetime
 from pathlib import Path
 
 import pytest
 
+from Src.Core.abstract_convert_factory import abstract_convert_factory
 from Src.Core.abstract_model import abstract_model
 from Src.Core.exception import arguments_exception
 from Src.Dtos.report_type_enum import report_type_enum
@@ -122,6 +124,31 @@ def _build_composite_recipe() -> tuple:
     return recipe, dough_recipe, flour
 
 
+def test_invalid_result_abstract_convert_factory_cannot_instantiate():
+    """
+    Проверяет, что абстрактную фабрику нельзя создать напрямую.
+
+    1. Попытаться создать экземпляр abstract_convert_factory.
+
+    <expected>TypeError, так как методы фабрики абстрактные.</expected>
+    """
+    with pytest.raises(TypeError):
+        abstract_convert_factory()
+
+
+def test_valid_result_convert_factory_is_abstract_factory():
+    """
+    Проверяет наследование конкретной фабрики от абстрактной.
+
+    1. Создать convert_factory.
+
+    <expected>Экземпляр является наследником abstract_convert_factory.</expected>
+    """
+    factory = convert_factory()
+
+    assert isinstance(factory, abstract_convert_factory)
+
+
 def test_valid_result_convert_factory_create_selects_converters():
     """
     Проверяет выбор конвертера по типу значения.
@@ -135,6 +162,21 @@ def test_valid_result_convert_factory_create_selects_converters():
     assert isinstance(factory.create(42), basic_convertor)
     assert isinstance(factory.create(datetime(2026, 10, 24)), datetime_convertor)
     assert isinstance(factory.create(group_model.create("Группа")), reference_convertor)
+
+
+def test_valid_result_convert_factory_create_family():
+    """
+    Проверяет создание всего семейства конвертеров методами фабрики.
+
+    1. Вызвать create_basic(), create_datetime() и create_reference().
+
+    <expected>Возвращаются экземпляры соответствующих конвертеров.</expected>
+    """
+    factory = convert_factory()
+
+    assert isinstance(factory.create_basic(), basic_convertor)
+    assert isinstance(factory.create_datetime(), datetime_convertor)
+    assert isinstance(factory.create_reference(), reference_convertor)
 
 
 def test_invalid_result_convert_factory_unknown_type():
@@ -233,26 +275,28 @@ def test_valid_result_convert_factory_aggregate():
         result["rows"][0]["sub_recipe"]["rows"][0]["nomenclature"]["name"]
         == flour.name
     )
+    assert result["rows"][0]["sub_recipe"]["dish"]["full_name"] != ""
+    assert "items" not in result
+    assert "recipe" not in result["rows"][0]
 
 
 def test_valid_result_convert_factory_repeated_reference():
     """
-    Проверяет замену повторной ссылки дескриптором.
+    Проверяет полное раскрытие повторной ссылки в соседней ветке.
 
     1. Передать список из двух одинаковых номенклатур.
     2. Вызвать convert_factory.Convert(list).
 
-    <expected>Первый элемент раскрыт полностью, второй — {"unique_code", "name"}.</expected>
+    <expected>Оба элемента раскрыты полностью, включая range и group.</expected>
     """
     nomenclature = _build_nomenclature()
 
     result = convert_factory().Convert([nomenclature, nomenclature])
 
     assert result[0]["group"]["name"] == "Ингредиенты"
-    assert result[1] == {
-        "unique_code": nomenclature.unique_code,
-        "name": nomenclature.name,
-    }
+    assert result[1]["range"]["name"] == "грамм"
+    assert result[1]["range"]["conversion_factor"] == 1.0
+    assert result[0] == result[1]
 
 
 def test_valid_result_convert_factory_cycle():
@@ -330,13 +374,44 @@ def test_invalid_result_convert_factory_none():
 _JSON_DIR = Path(__file__).resolve().parent.parent / "_docs" / "json"
 
 
+def _load_json(file_name: str):
+    """Прочитать JSON-файл из каталога примеров.
+
+    :param file_name: Имя файла в _docs/json.
+    :return: Разобранные данные JSON.
+    """
+    path = _JSON_DIR / file_name
+    assert path.exists(), f"Не найден JSON-пример: {path}"
+
+    with open(path, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def _walk_json(value):
+    """Рекурсивно перебрать все словари и списки JSON-структуры.
+
+    :param value: Любой узел JSON.
+    :return: Итератор по вложенным словарям.
+    """
+    if isinstance(value, dict):
+        yield value
+        for item in value.values():
+            yield from _walk_json(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _walk_json(item)
+
+
 @pytest.mark.parametrize(
     "file_name,expected_keys",
     [
         ("basic_convertor.json", ("unique_code", "name")),
         ("datetime_convertor.json", ("value",)),
         ("reference_convertor.json", ("unique_code", "name", "group", "range")),
-        ("convert_factory_receipt.json", ("unique_code", "name", "dish", "rows")),
+        (
+            "storage_manager.json",
+            ("warehouses", "ranges", "groups", "nomenclatures", "recipes"),
+        ),
     ],
 )
 def test_valid_result_json_examples(file_name, expected_keys):
@@ -348,13 +423,89 @@ def test_valid_result_json_examples(file_name, expected_keys):
 
     <expected>Файл существует, читается и содержит ожидаемую структуру.</expected>
     """
-    path = _JSON_DIR / file_name
-
-    assert path.exists(), f"Не найден JSON-пример: {path}"
-
-    with open(path, "r", encoding="utf-8") as file:
-        data = json.load(file)
+    data = _load_json(file_name)
 
     assert isinstance(data, dict)
     for key in expected_keys:
         assert key in data
+
+
+def test_valid_result_storage_manager_json_all_collections():
+    """
+    Проверяет полную выгрузку всех коллекций storage_manager.
+
+    1. Прочитать storage_manager.json.
+    2. Проверить наличие и размер всех коллекций.
+
+    <expected>В файле все склады, единицы, группы, номенклатура и рецепты.</expected>
+    """
+    data = _load_json("storage_manager.json")
+
+    assert len(data["warehouses"]) == 2
+    assert len(data["ranges"]) == 4
+    assert len(data["groups"]) == 4
+    assert len(data["nomenclatures"]) == 7
+    assert len(data["recipes"]) == 2
+
+
+def test_valid_result_storage_manager_json_guid():
+    """
+    Проверяет, что все уникальные коды в выгрузке являются GUID.
+
+    1. Рекурсивно обойти JSON.
+    2. Для каждого unique_code проверить формат UUID.
+
+    <expected>Все коды преобразуются через uuid.UUID и не являются ручными строками.</expected>
+    """
+    data = _load_json("storage_manager.json")
+
+    unique_codes = [
+        node["unique_code"]
+        for node in _walk_json(data)
+        if "unique_code" in node
+    ]
+
+    assert len(unique_codes) > 0
+    for unique_code in unique_codes:
+        parsed = uuid.UUID(unique_code)
+        assert len(parsed.hex) == 32
+
+
+def test_valid_result_storage_manager_json_full_references():
+    """
+    Проверяет, что ссылки в полной выгрузке не урезаны до двух полей.
+
+    1. Найти в JSON все объекты единицы измерения.
+    2. Проверить наличие base и conversion_factor.
+
+    <expected>Каждая единица измерения раскрыта полностью.</expected>
+    """
+    data = _load_json("storage_manager.json")
+
+    gram_objects = [
+        node
+        for node in _walk_json(data)
+        if node.get("name") == "грамм" and "unique_code" in node
+    ]
+
+    assert len(gram_objects) > 0
+    for gram in gram_objects:
+        assert "base" in gram
+        assert "conversion_factor" in gram
+
+
+def test_valid_result_reference_convertor_json_full():
+    """
+    Проверяет полноту примера для reference_convertor.
+
+    1. Прочитать reference_convertor.json.
+    2. Проверить вложенные group и range.
+
+    <expected>range содержит conversion_factor и base, group содержит name.</expected>
+    """
+    data = _load_json("reference_convertor.json")
+
+    assert data["group"]["name"] == "Ингредиенты"
+    assert data["range"]["name"] == "грамм"
+    assert data["range"]["base"] is None
+    assert data["range"]["conversion_factor"] == 1.0

@@ -6,6 +6,7 @@ from Src.Core.abstract_covertor import abstract_covertor
 from Src.Core.exception import arguments_exception
 from Src.Dtos.report_type_enum import report_type_enum
 from Src.Logics.basic_convertor import basic_convertor
+from Src.Logics.convert_factory import convert_factory
 from Src.Logics.datetime_convertor import datetime_convertor
 from Src.Logics.reference_convertor import reference_convertor
 from Src.Models.group_model import group_model
@@ -213,18 +214,39 @@ def test_invalid_result_datetime_convertor_none():
         datetime_convertor().Convert(None)
 
 
-def test_valid_result_reference_convertor_nomenclature():
+def test_valid_result_reference_convertor_nomenclature_without_factory():
     """
-    Проверяет полное раскрытие ссылок номенклатуры.
+    Проверяет краткое описание ссылки без переданной фабрики.
 
     1. Создать номенклатуру с группой и единицей измерения.
-    2. Вызвать reference_convertor.Convert(nomenclature).
+    2. Вызвать reference_convertor.Convert(nomenclature) без фабрики.
 
-    <expected>group и range раскрыты вложенными словарями.</expected>
+    <expected>Возвращается дескриптор с unique_code и name.</expected>
     """
     nomenclature = _build_nomenclature()
 
     result = reference_convertor().Convert(nomenclature)
+
+    assert result == {
+        "unique_code": nomenclature.unique_code,
+        "name": nomenclature.name,
+    }
+
+
+def test_valid_result_reference_convertor_nomenclature_with_factory():
+    """
+    Проверяет полное раскрытие ссылок через абстрактную фабрику.
+
+    1. Создать номенклатуру с группой и единицей измерения.
+    2. Получить reference_convertor у convert_factory.
+    3. Вызвать Convert(nomenclature).
+
+    <expected>group и range раскрыты вложенными словарями.</expected>
+    """
+    nomenclature = _build_nomenclature()
+    factory = convert_factory()
+
+    result = factory.reference.Convert(nomenclature)
 
     assert result["name"] == "Мука"
     assert result["group"]["name"] == "Ингредиенты"
@@ -234,16 +256,18 @@ def test_valid_result_reference_convertor_nomenclature():
 
 def test_valid_result_reference_convertor_composite_recipe():
     """
-    Проверяет раскрытие ссылок в составном рецепте.
+    Проверяет раскрытие ссылок в составном рецепте через фабрику.
 
     1. Создать рецепт с вложенным полуфабрикатом.
-    2. Вызвать reference_convertor.Convert(recipe).
+    2. Получить reference_convertor у convert_factory.
+    3. Вызвать Convert(recipe).
 
     <expected>Вложенный sub_recipe содержит строки состава и ингредиенты.</expected>
     """
     recipe, dough_recipe, flour = _build_composite_recipe()
+    factory = convert_factory()
 
-    result = reference_convertor().Convert(recipe)
+    result = factory.reference.Convert(recipe)
 
     assert result["dish"]["name"] == "Песочное печенье"
     assert result["rows"][0]["sub_recipe"]["name"] == dough_recipe.name
