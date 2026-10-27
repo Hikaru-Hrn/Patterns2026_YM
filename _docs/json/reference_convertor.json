@@ -1,0 +1,15 @@
+{
+  "unique_code": "2cc2be85fe7443efbe7aae4380f65f5a",
+  "name": "Мука пшеничная",
+  "full_name": "Мука пшеничная высший сорт",
+  "group": {
+    "unique_code": "bc39562af5574974b4a3de8236c6bb2d",
+    "name": "Ингредиенты"
+  },
+  "range": {
+    "unique_code": "008bee573cbb45b890c6b8fbdbb58135",
+    "name": "грамм",
+    "base": null,
+    "conversion_factor": 1.0
+  }
+}

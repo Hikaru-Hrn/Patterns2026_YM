@@ -1,0 +1,105 @@
+{
+  "unique_code": "receipt-cookies",
+  "name": "Песочное печенье",
+  "dish": {
+    "unique_code": "nomenclature-cookies",
+    "name": "Песочное печенье",
+    "full_name": "Песочное печенье в упаковке",
+    "group": {
+      "unique_code": "group-ingredients",
+      "name": "Ингредиенты"
+    },
+    "range": {
+      "unique_code": "range-gram",
+      "name": "грамм",
+      "base": null,
+      "conversion_factor": 1.0
+    }
+  },
+  "comments": "",
+  "rows": [
+    {
+      "unique_code": "row-dough",
+      "nomenclature": {
+        "unique_code": "nomenclature-dough",
+        "name": "Песочное тесто",
+        "full_name": "Песочное тесто (полуфабрикат)",
+        "group": {
+          "unique_code": "group-ingredients",
+          "name": "Ингредиенты"
+        },
+        "range": {
+          "unique_code": "range-gram",
+          "name": "грамм"
+        }
+      },
+      "sub_recipe": {
+        "unique_code": "receipt-dough",
+        "name": "Песочное тесто",
+        "dish": {
+          "unique_code": "nomenclature-dough",
+          "name": "Песочное тесто"
+        },
+        "comments": "",
+        "rows": [
+          {
+            "unique_code": "row-flour",
+            "nomenclature": {
+              "unique_code": "nomenclature-flour",
+              "name": "Мука",
+              "full_name": "Мука пшеничная высший сорт",
+              "group": {
+                "unique_code": "group-ingredients",
+                "name": "Ингредиенты"
+              },
+              "range": {
+                "unique_code": "range-gram",
+                "name": "грамм"
+              }
+            },
+            "sub_recipe": null,
+            "recipe": null,
+            "range": {
+              "unique_code": "range-gram",
+              "name": "грамм"
+            },
+            "gross_weight": 250.0,
+            "brutto": 250.0,
+            "net_weight": 240.0,
+            "netto": 240.0,
+            "name": "Мука"
+          }
+        ],
+        "items": [
+          {
+            "unique_code": "row-flour",
+            "name": "Мука"
+          }
+        ],
+        "gross_weight": 250.0,
+        "net_weight": 240.0
+      },
+      "recipe": {
+        "unique_code": "receipt-dough",
+        "name": "Песочное тесто"
+      },
+      "range": {
+        "unique_code": "range-gram",
+        "name": "грамм"
+      },
+      "gross_weight": 250.0,
+      "brutto": 250.0,
+      "net_weight": 240.0,
+      "netto": 240.0,
+      "name": "Песочное тесто"
+    }
+  ],
+  "items": [
+    {
+      "unique_code": "row-dough",
+      "name": "Песочное тесто"
+    }
+  ],
+  "gross_weight": 250.0,
+  "net_weight": 240.0
+}
