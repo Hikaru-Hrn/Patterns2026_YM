@@ -1,3 +1,5 @@
+from typing import get_args
+
 from Src.Core.abstract_manager import abstract_manager
 from Src.Core.exception import arguments_exception, operation_exception
 from Src.Core.validator import validator
@@ -345,12 +347,23 @@ class storage_manager(abstract_manager):
     # -------------------------------------------------------------------------
 
     @property
-    def warehouses(self) -> list:
+    def collection_models(self) -> dict:
+        """Возвращает схему коллекций: имя свойства -> класс модели по аннотациям геттеров."""
+        result = {}
+        for name, attribute in type(self).__dict__.items():
+            if isinstance(attribute, property) and attribute.fget is not None:
+                args = get_args(attribute.fget.__annotations__.get("return"))
+                if args:
+                    result[name] = args[0]
+        return result
+
+    @property
+    def warehouses(self) -> list[warehouse_model]:
         """Возвращает список зарегистрированных складов."""
         return self._warehouses
 
     @property
-    def ranges(self) -> list:
+    def ranges(self) -> list[range_model]:
         """Возвращает список зарегистрированных единиц измерения."""
         return self._ranges
 
@@ -360,16 +373,16 @@ class storage_manager(abstract_manager):
         return self._ranges
 
     @property
-    def groups(self) -> list:
+    def groups(self) -> list[group_model]:
         """Возвращает список зарегистрированных групп номенклатуры."""
         return self._groups
 
     @property
-    def nomenclatures(self) -> list:
+    def nomenclatures(self) -> list[nomenclature_model]:
         """Возвращает список зарегистрированных позиций номенклатуры."""
         return self._nomenclatures
 
     @property
-    def recipes(self) -> list:
+    def recipes(self) -> list[receipt_model]:
         """Возвращает список зарегистрированных технологических карт (рецептов)."""
         return self._recipes
