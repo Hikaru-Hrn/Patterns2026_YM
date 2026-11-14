@@ -3,6 +3,8 @@ from typing import get_args
 from Src.Core.abstract_manager import abstract_manager
 from Src.Core.exception import arguments_exception, operation_exception
 from Src.Core.validator import validator
+from Src.Logics.convert_factory import convert_factory
+from Src.Logics.deserialize_factory import deserialize_factory
 from Src.Logics.settings_manager import settings_manager
 from Src.Models.group_model import group_model
 from Src.Models.nomenclature_model import nomenclature_model
@@ -138,31 +140,69 @@ class storage_manager(abstract_manager):
                 return rec
         return None
 
-    def find_entity(self, entity_type: str, code: str):
-        """Ищет доменную сущность по типу и коду (unique_code или name).
+    def _resolve_collection(self, entity_type: str) -> tuple[list, type]:
+        """Определяет список хранения и класс доменной модели по строковому коду типа.
 
-        :param entity_type: Тип сущности (номенклатура/nomenclature, единица_измерения/range, рецепт/receipt).
-        :param code: Уникальный код или наименование сущности.
-        :return: Экземпляр сущности или None.
-        :raises arguments_exception: Если тип сущности не распознан.
+        :param entity_type: Строковый ключ типа сущности.
+        :return: Кортеж (список элементов хранилища, класс модели).
+        :raises arguments_exception: Если тип сущности пустой или не распознан.
         """
         if not isinstance(entity_type, str) or not entity_type.strip():
             raise arguments_exception("entity_type", "Тип сущности не может быть пустым")
 
         clean_type = entity_type.strip().lower()
-        clean_code = str(code).strip()
+        mapping = {
+            "group": (self._groups, group_model),
+            "groups": (self._groups, group_model),
+            "group_model": (self._groups, group_model),
+            "группа": (self._groups, group_model),
+            "группа_номенклатуры": (self._groups, group_model),
+            "range": (self._ranges, range_model),
+            "ranges": (self._ranges, range_model),
+            "range_model": (self._ranges, range_model),
+            "единица_измерения": (self._ranges, range_model),
+            "единица": (self._ranges, range_model),
+            "unit": (self._ranges, range_model),
+            "units": (self._ranges, range_model),
+            "nomenclature": (self._nomenclatures, nomenclature_model),
+            "nomenclatures": (self._nomenclatures, nomenclature_model),
+            "nomenclature_model": (self._nomenclatures, nomenclature_model),
+            "номенклатура": (self._nomenclatures, nomenclature_model),
+            "warehouse": (self._warehouses, warehouse_model),
+            "warehouses": (self._warehouses, warehouse_model),
+            "warehouse_model": (self._warehouses, warehouse_model),
+            "storage_model": (self._warehouses, warehouse_model),
+            "склад": (self._warehouses, warehouse_model),
+            "receipt": (self._recipes, receipt_model),
+            "recipe": (self._recipes, receipt_model),
+            "recipes": (self._recipes, receipt_model),
+            "receipt_model": (self._recipes, receipt_model),
+            "рецепт": (self._recipes, receipt_model),
+            "технологическая_карта": (self._recipes, receipt_model),
+        }
 
-        if clean_type in ("nomenclature", "номенклатура"):
-            items = self._nomenclatures
-        elif clean_type in ("range", "единица_измерения", "единица", "unit"):
-            items = self._ranges
-        elif clean_type in ("receipt", "recipe", "рецепт", "технологическая_карта"):
-            items = self._recipes
-        else:
+        if clean_type not in mapping:
             raise arguments_exception(
                 "entity_type",
-                f"Неподдерживаемый тип сущности '{entity_type}'. Допустимые: номенклатура, единица_измерения, рецепт"
+                f"Неподдерживаемый тип сущности '{entity_type}'. Допустимые: group, range, nomenclature, warehouse, receipt"
             )
+        return mapping[clean_type]
+
+    def get_collection(self, entity_type: str) -> list:
+        """Возвращает коллекцию доменных сущностей указанного типа."""
+        items, _ = self._resolve_collection(entity_type)
+        return items
+
+    def find_entity(self, entity_type: str, code: str):
+        """Ищет доменную сущность по типу и коду (unique_code или name).
+
+        :param entity_type: Тип сущности (group, range, nomenclature, warehouse, receipt).
+        :param code: Уникальный код или наименование сущности.
+        :return: Экземпляр сущности или None.
+        :raises arguments_exception: Если тип сущности не распознан.
+        """
+        items, _ = self._resolve_collection(entity_type)
+        clean_code = str(code).strip()
 
         for item in items:
             if getattr(item, "unique_code", None) == clean_code:
@@ -173,6 +213,221 @@ class storage_manager(abstract_manager):
                 return item
 
         return None
+
+    @staticmethod
+    def _find_in_list(items: list, ref):
+        """Находит существующий объект в списке по unique_code или name."""
+        if ref is None:
+            return None
+        ref_code = getattr(ref, "unique_code", None)
+        if isinstance(ref_code, str) and ref_code.strip():
+            for item in items:
+                if getattr(item, "unique_code", None) == ref_code.strip():
+                    return item
+        ref_name = getattr(ref, "name", None)
+        if isinstance(ref_name, str) and ref_name.strip():
+            for item in items:
+                if getattr(item, "name", None) == ref_name.strip():
+                    return item
+        return None
+
+    def is_entity_referenced(self, target) -> bool:
+        """Проверяет, связана ли доменная сущность с любой другой доменной сущностью в хранилище.
+
+        :param target: Проверяемый экземпляр доменной сущности.
+        :return: True, если на сущность ссылается другая сущность, иначе False.
+        """
+        if target is None:
+            return False
+
+        code = getattr(target, "unique_code", None)
+
+        def _matches(ref) -> bool:
+            return ref is not None and (ref is target or getattr(ref, "unique_code", None) == code)
+
+        if isinstance(target, group_model):
+            return any(_matches(nom.group) for nom in self._nomenclatures)
+
+        if isinstance(target, range_model):
+            if any(_matches(r.base) for r in self._ranges if r is not target):
+                return True
+            if any(_matches(nom.range) for nom in self._nomenclatures):
+                return True
+            return any(_matches(row.range) for rec in self._recipes for row in rec.rows)
+
+        if isinstance(target, nomenclature_model):
+            if any(_matches(rec.dish) for rec in self._recipes):
+                return True
+            return any(_matches(row.nomenclature) for rec in self._recipes for row in rec.rows)
+
+        if isinstance(target, receipt_model):
+            return any(
+                _matches(row.sub_recipe)
+                for rec in self._recipes
+                if rec is not target
+                for row in rec.rows
+            )
+
+        return False
+
+    def _validate_and_bind_entity(self, candidate, current_target=None) -> None:
+        """Проверяет обязательные поля сущности и привязывает ссылки к объектам из хранилища."""
+        candidate.name = candidate.name
+
+        if isinstance(candidate, warehouse_model):
+            candidate.address = candidate.address
+            return
+
+        if isinstance(candidate, group_model):
+            return
+
+        if isinstance(candidate, range_model):
+            candidate.conversion_factor = candidate.conversion_factor
+            if candidate.base is not None:
+                found_base = self._find_in_list(self._ranges, candidate.base)
+                if found_base is None:
+                    raise operation_exception("Базовая единица измерения не найдена в хранилище")
+                if found_base is current_target or found_base.unique_code == candidate.unique_code:
+                    raise operation_exception("Единица измерения не может ссылаться сама на себя")
+                candidate.base = found_base
+            return
+
+        if isinstance(candidate, nomenclature_model):
+            candidate.full_name = candidate.full_name
+            if candidate.group is None:
+                raise arguments_exception("group", "Не указана группа номенклатуры")
+            found_group = self._find_in_list(self._groups, candidate.group)
+            if found_group is None:
+                raise operation_exception("Связанная группа номенклатуры не найдена в хранилище")
+            candidate.group = found_group
+
+            if candidate.range is None:
+                raise arguments_exception("range", "Не указана единица измерения номенклатуры")
+            found_range = self._find_in_list(self._ranges, candidate.range)
+            if found_range is None:
+                raise operation_exception("Связанная единица измерения не найдена в хранилище")
+            candidate.range = found_range
+            return
+
+        if isinstance(candidate, receipt_model):
+            if candidate.dish is None:
+                raise arguments_exception("dish", "Не указано выходное блюдо рецепта")
+            found_dish = self._find_in_list(self._nomenclatures, candidate.dish)
+            if found_dish is None:
+                raise operation_exception("Выходная номенклатура рецепта не найдена в хранилище")
+            candidate.dish = found_dish
+
+            bound_rows = []
+            for row in candidate.rows:
+                if row.sub_recipe is not None:
+                    found_sub = self._find_in_list(self._recipes, row.sub_recipe)
+                    if found_sub is None:
+                        raise operation_exception("Вложенный рецепт строки не найден в хранилище")
+                    if found_sub is current_target or found_sub.unique_code == candidate.unique_code:
+                        raise operation_exception("Рецепт не может включать сам себя")
+                    row.sub_recipe = found_sub
+                elif row.nomenclature is not None:
+                    found_nom = self._find_in_list(self._nomenclatures, row.nomenclature)
+                    if found_nom is None:
+                        raise operation_exception("Номенклатура строки рецепта не найдена в хранилище")
+                    row.nomenclature = found_nom
+                else:
+                    raise arguments_exception("row", "Строка рецепта должна содержать номенклатуру или вложенный рецепт")
+
+                if row.range is not None:
+                    found_row_range = self._find_in_list(self._ranges, row.range)
+                    if found_row_range is None:
+                        raise operation_exception("Единица измерения строки рецепта не найдена в хранилище")
+                    row.range = found_row_range
+                elif row.sub_recipe is not None and row.sub_recipe.dish is not None:
+                    row.range = row.sub_recipe.dish.range
+                else:
+                    raise arguments_exception("range", "Не указана единица измерения строки рецепта")
+
+                bound_rows.append(row)
+            candidate.rows = bound_rows
+
+    def create_entity(self, entity_type: str, payload: dict):
+        """Создает и добавляет новую доменную сущность из JSON-словаря с проверкой корректности."""
+        items, model_cls = self._resolve_collection(entity_type)
+        if not isinstance(payload, dict) or len(payload) == 0:
+            raise arguments_exception("payload", "Тело запроса должно быть непустым JSON-объектом")
+
+        candidate = deserialize_factory().Convert(payload, model_cls)
+        self._validate_and_bind_entity(candidate)
+
+        if not self._is_unique(items, candidate):
+            raise operation_exception("Сущность с таким кодом или наименованием уже существует")
+
+        items.append(candidate)
+        return candidate
+
+    def update_entity(self, entity_type: str, code: str, payload: dict):
+        """Обновляет существующую доменную сущность с проверкой связей и уникальности."""
+        items, model_cls = self._resolve_collection(entity_type)
+        if not isinstance(payload, dict) or len(payload) == 0:
+            raise arguments_exception("payload", "Тело запроса должно быть непустым JSON-объектом")
+
+        target = self.find_entity(entity_type, code)
+        if target is None:
+            return None
+
+        new_code = payload.get("unique_code")
+        if new_code is not None:
+            if not isinstance(new_code, str) or not new_code.strip():
+                raise arguments_exception("unique_code", "Уникальный код не может быть пустым")
+            new_code = new_code.strip()
+            if new_code != target.unique_code:
+                if self.is_entity_referenced(target):
+                    raise operation_exception(
+                        "Запрещено менять код сущности, так как она связана с другой доменной сущностью"
+                    )
+                if any(getattr(item, "unique_code", None) == new_code for item in items if item is not target):
+                    raise operation_exception(f"Сущность с кодом '{new_code}' уже существует")
+
+        merged = {**convert_factory().Convert(target), **payload}
+        merged["unique_code"] = new_code if new_code is not None else target.unique_code
+
+        candidate = deserialize_factory().Convert(merged, model_cls)
+        self._validate_and_bind_entity(candidate, current_target=target)
+
+        if any(getattr(item, "name", None) == candidate.name for item in items if item is not target):
+            raise operation_exception(f"Сущность с наименованием '{candidate.name}' уже существует")
+
+        target.unique_code = candidate.unique_code
+        target.name = candidate.name
+
+        if isinstance(target, warehouse_model):
+            target.address = candidate.address
+        elif isinstance(target, range_model):
+            target.conversion_factor = candidate.conversion_factor
+            target.base = candidate.base
+        elif isinstance(target, nomenclature_model):
+            target.full_name = candidate.full_name
+            target.group = candidate.group
+            target.range = candidate.range
+        elif isinstance(target, receipt_model):
+            target.dish = candidate.dish
+            target.rows = candidate.rows
+            if candidate.comments:
+                target.comments = candidate.comments
+
+        return target
+
+    def delete_entity(self, entity_type: str, code: str) -> bool:
+        """Удаляет доменную сущность по коду или имени, если она не связана с другими сущностями."""
+        items, _ = self._resolve_collection(entity_type)
+        target = self.find_entity(entity_type, code)
+        if target is None:
+            return False
+
+        if self.is_entity_referenced(target):
+            raise operation_exception(
+                "Запрещено удалять сущность, так как она связана с другой доменной сущностью"
+            )
+
+        items.remove(target)
+        return True
 
     # -------------------------------------------------------------------------
     # Загрузка и конвертация (полиморфизм abstract_manager)
