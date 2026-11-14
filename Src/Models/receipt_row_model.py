@@ -41,7 +41,7 @@ class recipe_row_model(abstract_model):
         self.__nomenclature = value
 
     @property
-    def sub_recipe(self):
+    def sub_recipe(self) -> "receipt_model":
         """Возвращает вложенный рецепт (полуфабрикат), если строка является составной."""
         return self.__sub_recipe
 
@@ -59,7 +59,7 @@ class recipe_row_model(abstract_model):
         self.__sub_recipe = value
 
     @property
-    def recipe(self):
+    def recipe(self) -> "receipt_model":
         """Синоним свойства sub_recipe."""
         return self.__sub_recipe
 

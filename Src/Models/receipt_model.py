@@ -54,9 +54,22 @@ class receipt_model(entity_model):
         self.__comments = value.strip()
 
     @property
-    def rows(self) -> list:
+    def rows(self) -> list[recipe_row_model]:
         """Возвращает список строк состава рецепта."""
         return list(self.__rows)
+
+    @rows.setter
+    def rows(self, value: list[recipe_row_model]) -> None:
+        """Заменяет список строк состава рецепта.
+
+        :param value: Список строк рецепта.
+        :raises arguments_exception: Если передан не список.
+        """
+        if not isinstance(value, list):
+            raise arguments_exception("rows", "Некорректно переданный аргумент!")
+        self.__rows = []
+        for row in value:
+            self.add_row(row)
 
     @property
     def items(self) -> list:
