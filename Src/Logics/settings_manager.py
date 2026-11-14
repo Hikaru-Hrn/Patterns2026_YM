@@ -1,6 +1,7 @@
 
 import json
 
+from Src.Core.abstract_covertor import abstract_covertor
 from Src.Core.abstract_manager import abstract_manager
 from Src.Core.exception import operation_exception
 from Src.Logics.deserialize_factory import deserialize_factory
@@ -65,27 +66,15 @@ class settings_manager(abstract_manager):
         :return: True, если преобразование прошло успешно, иначе False.
         """
         try:
-            if not isinstance(self._data, dict) or not isinstance(self._data.get("organization"), dict):
+            if not isinstance(self._data, dict):
                 self._is_loaded = False
                 return False
 
             restored: settings_model = deserialize_factory().Convert(self._data, settings_model)
-            org = restored.organization
-            if org is None:
-                self._is_loaded = False
-                return False
-
-            # Гарантируем проверку обязательных реквизитов, даже если ключ пропущен в JSON
-            org.inn = org.inn
-            org.bic = org.bic
-            org.account = org.account
-
-            self._settings.unique_code = restored.unique_code
-            self._settings.organization = org
-            self._settings.boss_name = restored.boss_name
-            self._settings.account_name = restored.account_name
-            self._settings.first_launch_flag = restored.first_launch_flag
-            self._settings.response_format = restored.response_format
+            for field_name in abstract_covertor._get_fields(self._settings):
+                attribute = getattr(type(self._settings), field_name, None)
+                if isinstance(attribute, property) and attribute.fset is not None:
+                    setattr(self._settings, field_name, getattr(restored, field_name))
 
             self._is_loaded = True
             return True
