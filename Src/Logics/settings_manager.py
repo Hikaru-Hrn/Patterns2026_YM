@@ -70,11 +70,16 @@ class settings_manager(abstract_manager):
                 self._is_loaded = False
                 return False
 
-            restored: settings_model = deserialize_factory().Convert(self._data, settings_model)
+            self._settings = deserialize_factory().Convert(self._data, settings_model)
+
+            # Десериализация пропускает None, поэтому явно применяем setter-ы
+            # только для полей, переданных в JSON, чтобы сработала валидация.
             for field_name in abstract_covertor._get_fields(self._settings):
+                if field_name not in self._data:
+                    continue
                 attribute = getattr(type(self._settings), field_name, None)
                 if isinstance(attribute, property) and attribute.fset is not None:
-                    setattr(self._settings, field_name, getattr(restored, field_name))
+                    setattr(self._settings, field_name, getattr(self._settings, field_name))
 
             self._is_loaded = True
             return True

@@ -3,11 +3,11 @@ from typing import get_args
 from Src.Core.abstract_covertor import abstract_covertor
 from Src.Core.abstract_manager import abstract_manager
 from Src.Core.abstract_model import abstract_model
-from Src.Core.entity_model import entity_model
 from Src.Core.exception import arguments_exception, operation_exception
 from Src.Core.validator import validator
 from Src.Logics.convert_factory import convert_factory
 from Src.Logics.deserialize_factory import deserialize_factory
+from Src.Logics.entity_reference_helper import entity_reference_helper
 from Src.Logics.settings_manager import settings_manager
 from Src.Models.group_model import group_model
 from Src.Models.nomenclature_model import nomenclature_model
@@ -193,7 +193,9 @@ class storage_manager(abstract_manager):
         return None
 
     @staticmethod
-    def _find_in_list(items: list, ref):
+    def _find_in_list(
+        items: list[abstract_model], ref: abstract_model | dict | None
+    ) -> abstract_model | None:
         """Находит существующий объект в списке по unique_code или name."""
         if ref is None:
             return None
@@ -209,47 +211,14 @@ class storage_manager(abstract_manager):
                     return item
         return None
 
-    def is_entity_referenced(self, target) -> bool:
-        """Рефлексивно проверяет, ссылается ли любая другая доменная сущность хранилища на target.
+    def is_entity_referenced(self, target: abstract_model) -> bool:
+        """Проверяет, ссылается ли любая другая доменная сущность хранилища на target.
 
         :param target: Проверяемый экземпляр доменной сущности.
         :return: True, если на сущность ссылается другая сущность, иначе False.
         """
-        if not isinstance(target, abstract_model):
-            return False
-
-        collection_types = tuple(self.collection_models.values())
-
-        def _references(obj, visited: set) -> bool:
-            if obj is None or id(obj) in visited:
-                return False
-            visited.add(id(obj))
-
-            for field_name in abstract_covertor._get_fields(obj):
-                if field_name == "unique_code":
-                    continue
-                value = getattr(obj, field_name, None)
-                if isinstance(value, abstract_model):
-                    if value is target or value == target:
-                        return True
-                    if not isinstance(value, collection_types) and _references(value, visited):
-                        return True
-                elif isinstance(value, (list, tuple, set)):
-                    for item in value:
-                        if isinstance(item, abstract_model):
-                            if item is target or item == target:
-                                return True
-                            if not isinstance(item, collection_types) and _references(item, visited):
-                                return True
-            return False
-
-        for prop_name in self.collection_models:
-            for entity in getattr(self, prop_name):
-                if entity is target or entity == target:
-                    continue
-                if _references(entity, set()):
-                    return True
-        return False
+        collections = {prop_name: getattr(self, prop_name) for prop_name in self.collection_models}
+        return entity_reference_helper.is_referenced(target, collections)
 
     def _validate_and_bind_entity(self, candidate: abstract_model, current_target=None) -> None:
         """Рефлексивно проверяет поля сущности и привязывает ссылки к объектам из хранилища."""
@@ -259,54 +228,41 @@ class storage_manager(abstract_manager):
         }
 
         def _bind_model(obj: abstract_model, is_root: bool = False) -> None:
-            if isinstance(obj, entity_model):
-                obj.name = obj.name
+            for field_name in abstract_covertor._get_fields(obj):
+                if field_name in ("unique_code", "name"):
+                    continue
 
-            fields = [
-                f for f in abstract_covertor._get_fields(obj)
-                if f not in ("unique_code", "name")
-            ]
+                attribute = getattr(type(obj), field_name, None)
+                if not isinstance(attribute, property) or attribute.fset is None:
+                    continue
 
-            # Сначала привязываем заполненные ссылки на модели хранилища, затем остальные поля
-            for pass_non_none in (True, False):
-                for field_name in fields:
-                    attribute = getattr(type(obj), field_name, None)
-                    if not isinstance(attribute, property) or attribute.fset is None:
-                        continue
+                value = getattr(obj, field_name, None)
+                if value is None or value == "":
+                    continue
 
-                    value = getattr(obj, field_name, None)
-                    if (value is not None) != pass_non_none:
-                        continue
+                annotation = attribute.fget.__annotations__.get("return")
+                target_type = deserialize_factory._deserialize_factory__resolve_type(annotation)
+                elem_type = deserialize_factory._deserialize_factory__resolve_type(
+                    deserialize_factory._deserialize_factory__element_type(annotation)
+                )
 
-                    annotation = attribute.fget.__annotations__.get("return")
-                    target_type = deserialize_factory._deserialize_factory__resolve_type(annotation)
-                    elem_type = deserialize_factory._deserialize_factory__resolve_type(
-                        deserialize_factory._deserialize_factory__element_type(annotation)
-                    )
-
-                    if target_type in collections_by_type:
-                        if value is not None:
-                            found = self._find_in_list(collections_by_type[target_type], value)
-                            if found is None:
-                                raise operation_exception(
-                                    f"Связанная сущность для поля '{field_name}' не найдена в хранилище"
-                                )
-                            if is_root and (
-                                found is current_target or found.unique_code == candidate.unique_code
-                            ):
-                                raise operation_exception(
-                                    f"Сущность не может ссылаться сама на себя в поле '{field_name}'"
-                                )
-                            setattr(obj, field_name, found)
-                        else:
-                            setattr(obj, field_name, None)
-                    elif isinstance(value, list) and isinstance(elem_type, type) and issubclass(elem_type, abstract_model):
-                        for item in value:
-                            if isinstance(item, abstract_model):
-                                _bind_model(item, is_root=False)
-                        setattr(obj, field_name, value)
-                    elif value is not None and value != "":
-                        setattr(obj, field_name, value)
+                if target_type in collections_by_type:
+                    found = self._find_in_list(collections_by_type[target_type], value)
+                    if found is None:
+                        raise operation_exception(
+                            f"Связанная сущность для поля '{field_name}' не найдена в хранилище"
+                        )
+                    if is_root and (
+                        found is current_target or found.unique_code == candidate.unique_code
+                    ):
+                        raise operation_exception(
+                            f"Сущность не может ссылаться сама на себя в поле '{field_name}'"
+                        )
+                    setattr(obj, field_name, found)
+                elif isinstance(value, list) and isinstance(elem_type, type) and issubclass(elem_type, abstract_model):
+                    for item in value:
+                        if isinstance(item, abstract_model):
+                            _bind_model(item, is_root=False)
 
         _bind_model(candidate, is_root=True)
 
