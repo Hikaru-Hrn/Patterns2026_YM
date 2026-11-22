@@ -432,3 +432,109 @@ def test_invalid_result_api_crud_validation_errors(client):
         ).status_code
         == 400
     )
+
+
+def test_valid_result_api_filter_nomenclature_equals_by_name(client):
+    """
+    Проверяет POST-фильтрацию номенклатуры по точному наименованию.
+
+    1. Выполнить POST /api/filter/nomenclature с условием name EQUALS.
+
+    <expected>HTTP 200, JSON-массив с одной номенклатурой.</expected>
+    """
+    response = client.post(
+        "/api/filter/nomenclature",
+        json={"filters": [{"field_name": "name", "filter_type": "EQUALS", "value": "Мука пшеничная"}]},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["name"] == "Мука пшеничная"
+
+
+def test_valid_result_api_filter_nomenclature_like_by_name(client):
+    """
+    Проверяет POST-фильтрацию номенклатуры по вхождению подстроки.
+
+    1. Выполнить POST /api/filter/nomenclature с условием name LIKE 'Песочное'.
+
+    <expected>HTTP 200, JSON-массив с двумя номенклатурами.</expected>
+    """
+    response = client.post(
+        "/api/filter/nomenclature",
+        json={"filters": [{"field_name": "name", "filter_type": "LIKE", "value": "Песочное"}]},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+
+
+def test_valid_result_api_filter_nomenclature_by_group_name(client):
+    """
+    Проверяет POST-фильтрацию номенклатуры по наименованию группы.
+
+    1. Выполнить POST /api/filter/nomenclature с условием group.name EQUALS.
+
+    <expected>HTTP 200, все элементы принадлежат указанной группе.</expected>
+    """
+    response = client.post(
+        "/api/filter/nomenclature",
+        json={"filters": [{"field_name": "group.name", "filter_type": "EQUALS", "value": "Ингредиенты"}]},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) > 0
+    assert all(item["group"]["name"] == "Ингредиенты" for item in data)
+
+
+def test_valid_result_api_filter_range_by_base_name(client):
+    """
+    Проверяет POST-фильтрацию единиц измерения по базовой единице.
+
+    1. Выполнить POST /api/filter/range с условием base.name EQUALS 'грамм'.
+
+    <expected>HTTP 200, результат содержит килограмм.</expected>
+    """
+    response = client.post(
+        "/api/filter/range",
+        json={"filters": [{"field_name": "base.name", "filter_type": "EQUALS", "value": "грамм"}]},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["name"] == "килограмм"
+
+
+def test_valid_result_api_filter_turnover_by_nomenclature(client):
+    """
+    Проверяет формирование ОСВ с фильтрацией по номенклатуре.
+
+    1. Выполнить POST /api/filter/turnover с условием nomenclature.name EQUALS.
+
+    <expected>HTTP 200, одна строка ОСВ с корректными остатками.</expected>
+    """
+    response = client.post(
+        "/api/filter/turnover",
+        json={"filters": [{"field_name": "nomenclature.name", "filter_type": "EQUALS", "value": "Мука пшеничная"}]},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["income"] == 1000.0
+    assert data[0]["expense"] == 200.0
+    assert data[0]["closing_balance"] == 800.0
+
+
+def test_invalid_result_api_filter_unknown_entity_type(client):
+    """
+    Проверяет обработку запроса фильтрации для неизвестного типа сущности.
+
+    1. Выполнить POST /api/filter/unknown_type.
+
+    <expected>HTTP 400 Bad Request.</expected>
+    """
+    response = client.post(
+        "/api/filter/unknown_type",
+        json={"filters": [{"field_name": "name", "filter_type": "EQUALS", "value": "test"}]},
+    )
+    assert response.status_code == 400
