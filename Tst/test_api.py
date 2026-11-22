@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from main import app, _ensure_storage_loaded
+from Src.Logics.entity_service import entity_service
 from Src.Logics.settings_manager import settings_manager
 from Src.Logics.storage_manager import storage_manager
 from Src.Dtos.report_type_enum import report_type_enum
@@ -337,11 +338,11 @@ def test_invalid_result_api_delete_referenced_entities_blocked(client):
 
     <expected>Для всех 4 запросов возвращается HTTP 400 Bad Request, сущности остаются в хранилище.</expected>
     """
-    storage = storage_manager()
-    grp = storage.find_entity("group", "Ингредиенты")
-    gram = storage.find_entity("range", "грамм")
-    flour = storage.find_entity("nomenclature", "Мука пшеничная")
-    dough = storage.find_entity("receipt", "Песочное тесто")
+    service = entity_service()
+    grp = service.find_entity("group", "Ингредиенты")
+    gram = service.find_entity("range", "грамм")
+    flour = service.find_entity("nomenclature", "Мука пшеничная")
+    dough = service.find_entity("receipt", "Песочное тесто")
 
     assert client.delete(f"/api/entities/group/{grp.unique_code}").status_code == 400
     assert client.delete(f"/api/entities/range/{gram.unique_code}").status_code == 400
@@ -360,11 +361,11 @@ def test_invalid_result_api_update_code_of_referenced_entities_blocked(client):
 
     <expected>HTTP 400 Bad Request во всех случаях, исходные unique_code не изменились.</expected>
     """
-    storage = storage_manager()
-    grp = storage.find_entity("group", "Ингредиенты")
-    gram = storage.find_entity("range", "грамм")
-    flour = storage.find_entity("nomenclature", "Мука пшеничная")
-    dough = storage.find_entity("receipt", "Песочное тесто")
+    service = entity_service()
+    grp = service.find_entity("group", "Ингредиенты")
+    gram = service.find_entity("range", "грамм")
+    flour = service.find_entity("nomenclature", "Мука пшеничная")
+    dough = service.find_entity("receipt", "Песочное тесто")
 
     assert (
         client.put(

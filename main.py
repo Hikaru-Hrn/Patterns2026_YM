@@ -7,6 +7,7 @@ from fastapi import Body, FastAPI, HTTPException, Query, status
 from Src.Core.exception import base_exception
 from Src.Dtos.report_type_enum import report_type_enum
 from Src.Logics.convert_factory import convert_factory
+from Src.Logics.entity_service import entity_service
 from Src.Logics.report_factory import report_factory
 from Src.Logics.settings_manager import settings_manager
 from Src.Logics.storage_manager import storage_manager
@@ -135,10 +136,10 @@ def get_entity_report(
 ):
     """Формирует отчет в указанном формате с полиморфным созданием ответа."""
     _ensure_storage_loaded()
-    storage = storage_manager()
+    service = entity_service()
 
     try:
-        entity = storage.find_entity(entity_type, unique_code)
+        entity = service.find_entity(entity_type, unique_code)
     except base_exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
 
@@ -175,10 +176,10 @@ def get_entity_report_default(
 ):
     """Формирует отчет с использованием метода create_default() фабрики отчетов."""
     _ensure_storage_loaded()
-    storage = storage_manager()
+    service = entity_service()
 
     try:
-        entity = storage.find_entity(entity_type, unique_code)
+        entity = service.find_entity(entity_type, unique_code)
     except base_exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
 
@@ -206,9 +207,9 @@ def get_entity_report_default(
 def list_entities(entity_type: str):
     """Возвращает JSON-список всех сущностей выбранного типа."""
     _ensure_storage_loaded()
-    storage = storage_manager()
+    service = entity_service()
     try:
-        items = storage.get_collection(entity_type)
+        items = service.get_collection(entity_type)
         return convert_factory().Convert(items)
     except base_exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
@@ -223,9 +224,9 @@ def list_entities(entity_type: str):
 def get_entity(entity_type: str, unique_code: str):
     """Возвращает одну доменную сущность в формате JSON."""
     _ensure_storage_loaded()
-    storage = storage_manager()
+    service = entity_service()
     try:
-        entity = storage.find_entity(entity_type, unique_code)
+        entity = service.find_entity(entity_type, unique_code)
     except base_exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
 
@@ -246,9 +247,9 @@ def get_entity(entity_type: str, unique_code: str):
 def create_entity(entity_type: str, payload: dict[str, Any] = Body(...)):
     """Создает доменную сущность из JSON с проверкой корректности и уникальности."""
     _ensure_storage_loaded()
-    storage = storage_manager()
+    service = entity_service()
     try:
-        created = storage.create_entity(entity_type, payload)
+        created = service.create_entity(entity_type, payload)
         return convert_factory().Convert(created)
     except base_exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
@@ -269,9 +270,9 @@ def create_entity(entity_type: str, payload: dict[str, Any] = Body(...)):
 def update_entity(entity_type: str, unique_code: str, payload: dict[str, Any] = Body(...)):
     """Обновляет доменную сущность. Запрещает менять код, если сущность связана с другой."""
     _ensure_storage_loaded()
-    storage = storage_manager()
+    service = entity_service()
     try:
-        updated = storage.update_entity(entity_type, unique_code, payload)
+        updated = service.update_entity(entity_type, unique_code, payload)
     except base_exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
 
@@ -292,9 +293,9 @@ def update_entity(entity_type: str, unique_code: str, payload: dict[str, Any] = 
 def delete_entity(entity_type: str, unique_code: str):
     """Удаляет доменную сущность. Запрещает удаление, если сущность связана с другой."""
     _ensure_storage_loaded()
-    storage = storage_manager()
+    service = entity_service()
     try:
-        deleted = storage.delete_entity(entity_type, unique_code)
+        deleted = service.delete_entity(entity_type, unique_code)
     except base_exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
 
