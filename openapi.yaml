@@ -1,0 +1,309 @@
+openapi: 3.0.0
+info:
+  title: API системы управления сетью ресторанов 'Ромашка'
+  version: "1.0.0"
+  description: Формирование отчетов и CRUD-операции по доменным сущностям
+
+servers:
+  - url: http://127.0.0.1:8000
+    description: Local development server
+
+paths:
+  /:
+    get:
+      summary: Проверка работоспособности сервиса
+      operationId: main.root
+      tags:
+        - Система
+      responses:
+        '200':
+          description: Приветственное сообщение
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /api/report/formats:
+    get:
+      summary: Получить список всех форматов для построения отчетов
+      description: Возвращает JSON-массив всех доступных форматов построения отчетов.
+      operationId: main.get_report_formats
+      tags:
+        - Отчеты
+      responses:
+        '200':
+          description: Список форматов отчетов в формате JSON
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example: ["TXT", "CSV", "MARKDOWN", "XML", "HTML"]
+
+  /api/get_report:
+    get:
+      summary: Получить текстовый отчет по рецепту
+      operationId: main.get_report
+      tags:
+        - Отчеты
+      parameters:
+        - name: recipe_name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Наименование рецепта
+      responses:
+        '200':
+          description: Текстовый отчет по рецепту
+        '404':
+          description: Рецепт не найден
+
+  /api/report/{entity_type}/{unique_code}:
+    get:
+      summary: Сформировать отчет в указанном формате
+      description: Формирует отчет для указанного типа сущности и кода в заданном формате.
+      operationId: main.get_entity_report
+      tags:
+        - Отчеты
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [group, range, nomenclature, warehouse, receipt]
+        - name: unique_code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            default: TXT
+            enum: [TXT, CSV, Markdown, XML, HTML]
+      responses:
+        '200':
+          description: Сформированный отчет
+        '400':
+          description: Некорректный тип сущности или формат
+        '404':
+          description: Сущность не найдена
+
+  /api/report/default/{entity_type}/{unique_code}:
+    get:
+      summary: Сформировать отчет с форматом по умолчанию
+      description: Формирует отчет для указанного типа сущности и кода, используя формат по умолчанию из настроек.
+      operationId: main.get_entity_report_default
+      tags:
+        - Отчеты
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [group, range, nomenclature, warehouse, receipt]
+        - name: unique_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Сформированный отчет в формате по умолчанию
+        '400':
+          description: Ошибка в параметрах запроса
+        '404':
+          description: Сущность не найдена
+
+  /api/entities/{entity_type}:
+    get:
+      summary: Получить список доменных сущностей указанного типа
+      operationId: main.list_entities
+      tags:
+        - Доменные сущности (CRUD)
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [group, range, nomenclature, warehouse, receipt]
+          description: Тип доменной сущности
+      responses:
+        '200':
+          description: JSON-массив сущностей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '400':
+          description: Неподдерживаемый тип сущности
+    post:
+      summary: Создать новую доменную сущность
+      operationId: main.create_entity
+      tags:
+        - Доменные сущности (CRUD)
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [group, range, nomenclature, warehouse, receipt]
+          description: Тип создаваемой доменной сущности
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Сущность успешно создана
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Ошибка валидации или нарушение уникальности
+
+  /api/entities/{entity_type}/{unique_code}:
+    get:
+      summary: Получить доменную сущность по коду или наименованию
+      operationId: main.get_entity
+      tags:
+        - Доменные сущности (CRUD)
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [group, range, nomenclature, warehouse, receipt]
+        - name: unique_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Данные доменной сущности в формате JSON
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Неподдерживаемый тип сущности
+        '404':
+          description: Сущность не найдена
+    put:
+      summary: Изменить доменную сущность
+      description: Запрещено менять код (unique_code), если сущность связана с другой доменной сущностью.
+      operationId: main.update_entity
+      tags:
+        - Доменные сущности (CRUD)
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [group, range, nomenclature, warehouse, receipt]
+        - name: unique_code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Обновленная доменная сущность
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Ошибка валидации или попытка сменить код связанной сущности
+        '404':
+          description: Сущность не найдена
+    patch:
+      summary: Частично изменить доменную сущность
+      description: Запрещено менять код (unique_code), если сущность связана с другой доменной сущностью.
+      operationId: main.update_entity_patch
+      tags:
+        - Доменные сущности (CRUD)
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [group, range, nomenclature, warehouse, receipt]
+        - name: unique_code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Обновленная доменная сущность
+        '400':
+          description: Ошибка валидации или попытка сменить код связанной сущности
+        '404':
+          description: Сущность не найдена
+    delete:
+      summary: Удалить доменную сущность
+      description: Запрещено удалять сущность, если она связана с другой доменной сущностью.
+      operationId: main.delete_entity
+      tags:
+        - Доменные сущности (CRUD)
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [group, range, nomenclature, warehouse, receipt]
+        - name: unique_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Сущность успешно удалена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  unique_code:
+                    type: string
+        '400':
+          description: Запрещено удалять связанную сущность
+        '404':
+          description: Сущность не найдена

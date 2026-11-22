@@ -1,10 +1,11 @@
 
 import json
 
+from Src.Core.abstract_covertor import abstract_covertor
 from Src.Core.abstract_manager import abstract_manager
-from Src.Models.settings_model import settings_model
-from Src.Models.organization_model import organization_model
 from Src.Core.exception import operation_exception
+from Src.Logics.deserialize_factory import deserialize_factory
+from Src.Models.settings_model import settings_model
 
 
 class settings_manager(abstract_manager):
@@ -60,7 +61,7 @@ class settings_manager(abstract_manager):
             raise operation_exception(f"Ошибка при чтении файла {inner_file_name}: {e}")
 
     def convert(self) -> bool:
-        """Преобразует «сырые» данные JSON в settings_model.
+        """Преобразует «сырые» данные JSON в settings_model через deserialize_factory.
 
         :return: True, если преобразование прошло успешно, иначе False.
         """
@@ -69,30 +70,16 @@ class settings_manager(abstract_manager):
                 self._is_loaded = False
                 return False
 
-            org_data = self._data.get("organization")
-            if not isinstance(org_data, dict):
-                self._is_loaded = False
-                return False
+            self._settings = deserialize_factory().Convert(self._data, settings_model)
 
-            org = organization_model(
-                name=str(org_data.get("name", "")),
-                inn=str(org_data.get("inn", "")),
-                bic=str(org_data.get("bic", "")),
-                account=str(org_data.get("account", "")),
-                owner=str(org_data.get("owner", ""))
-            )
-
-            self._settings.organization = org
-
-            self._settings.boss_name = str(self._data.get("boss_name", ""))
-            self._settings.account_name = str(self._data.get("account_name", ""))
-
-            raw_flag = self._data.get("first_launch_flag", True)
-            self._settings.first_launch_flag = bool(raw_flag)
-
-            raw_format = self._data.get("response_format")
-            if raw_format:
-                self._settings.response_format = raw_format
+            # Десериализация пропускает None, поэтому явно применяем setter-ы
+            # только для полей, переданных в JSON, чтобы сработала валидация.
+            for field_name in abstract_covertor._get_fields(self._settings):
+                if field_name not in self._data:
+                    continue
+                attribute = getattr(type(self._settings), field_name, None)
+                if isinstance(attribute, property) and attribute.fset is not None:
+                    setattr(self._settings, field_name, getattr(self._settings, field_name))
 
             self._is_loaded = True
             return True
