@@ -178,6 +178,96 @@ paths:
         '400':
           description: Ошибка валидации или нарушение уникальности
 
+  /api/filter/{entity_type}:
+    post:
+      summary: Отфильтровать доменные сущности указанного типа
+      description: Фильтрует сущности по условиям filter_dto с поддержкой EQUALS/LIKE и вложенных связей.
+      operationId: main.filter_entities
+      tags:
+        - Фильтрация
+      parameters:
+        - name: entity_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [group, range, nomenclature, warehouse, receipt, transaction]
+          description: Тип доменной сущности
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      field_name:
+                        type: string
+                        example: name
+                      filter_type:
+                        type: string
+                        enum: [EQUALS, LIKE]
+                        example: LIKE
+                      value:
+                        type: string
+                        example: Пшеничная
+      responses:
+        '200':
+          description: JSON-массив отфильтрованных сущностей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '400':
+          description: Ошибка в параметрах запроса
+
+  /api/filter/turnover:
+    post:
+      summary: Сформировать оборотно-сальдовую ведомость с фильтрацией
+      description: Формирует ОСВ по транзакциям с учетом условий filter_dto.
+      operationId: main.get_turnover
+      tags:
+        - Фильтрация
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      field_name:
+                        type: string
+                        example: nomenclature.name
+                      filter_type:
+                        type: string
+                        enum: [EQUALS, LIKE]
+                        example: EQUALS
+                      value:
+                        type: string
+                        example: Мука пшеничная
+      responses:
+        '200':
+          description: JSON-массив строк ОСВ
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '400':
+          description: Ошибка в параметрах запроса
+
   /api/entities/{entity_type}/{unique_code}:
     get:
       summary: Получить доменную сущность по коду или наименованию
