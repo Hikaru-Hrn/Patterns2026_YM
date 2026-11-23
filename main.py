@@ -321,8 +321,7 @@ def get_turnover(payload: dict[str, Any] = Body(...)):
     _ensure_storage_loaded()
 
     try:
-        dto = filter_dto()
-        dto.filters = payload.get("filters", [])
+        dto = filter_dto.from_dict(payload)
         transactions = storage_manager().transactions
         prototype = turnover_prototype(transactions)
         filtered = prototype.clone(dto)
@@ -359,8 +358,7 @@ def filter_entities(entity_type: str, payload: dict[str, Any] = Body(...)):
         )
 
     try:
-        dto = filter_dto()
-        dto.filters = payload.get("filters", [])
+        dto = filter_dto.from_dict(payload)
         prototype = filter_prototype(items, collection_name)
         result = prototype.clone(dto)
         return convert_factory().Convert(result.data)

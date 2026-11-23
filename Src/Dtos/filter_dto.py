@@ -84,6 +84,23 @@ class filter_item_dto:
         item.filter_type = filter_type
         return item
 
+    @staticmethod
+    def from_dict(source: dict) -> "filter_item_dto":
+        """Создает условие фильтрации из JSON-словаря.
+
+        :param source: Словарь с ключами field_name, value, filter_type.
+        :return: Заполненный экземпляр filter_item_dto.
+        :raises arguments_exception: Если передан не словарь.
+        """
+        if not isinstance(source, dict):
+            raise arguments_exception("source", "Ожидался словарь для создания filter_item_dto")
+
+        item = filter_item_dto()
+        item.field_name = source.get("field_name", "")
+        item.value = source.get("value", "")
+        item.filter_type = source.get("filter_type", filter_type_enum.EQUALS)
+        return item
+
 
 class filter_dto:
     """Модель данных для передачи условий фильтрации.
@@ -103,25 +120,16 @@ class filter_dto:
         return list(self.__filters)
 
     @filters.setter
-    def filters(self, value: list) -> None:
+    def filters(self, value: list[filter_item_dto]) -> None:
         """Устанавливает список условий фильтрации.
 
-        :param value: Список filter_item_dto или словарей.
-        :raises arguments_exception: Если передан не список.
+        :param value: Список filter_item_dto.
+        :raises arguments_exception: Если передан не список или элемент не filter_item_dto.
         """
         validator.validate(value, list)
-        self.__filters = []
         for item in value:
-            if isinstance(item, dict):
-                dto = filter_item_dto()
-                dto.field_name = item.get("field_name", "")
-                dto.value = item.get("value", "")
-                dto.filter_type = item.get("filter_type", filter_type_enum.EQUALS)
-                self.__filters.append(dto)
-            elif isinstance(item, filter_item_dto):
-                self.__filters.append(item)
-            else:
-                raise arguments_exception("filters", "Элемент фильтра должен быть filter_item_dto или словарем")
+            validator.validate(item, filter_item_dto)
+        self.__filters = list(value)
 
     def add_filter(self, item: filter_item_dto) -> None:
         """Добавляет условие фильтрации в набор.
@@ -141,4 +149,23 @@ class filter_dto:
         dto = filter_dto()
         for item in filters:
             dto.add_filter(item)
+        return dto
+
+    @staticmethod
+    def from_dict(source: dict) -> "filter_dto":
+        """Создает DTO фильтрации из JSON-словаря.
+
+        :param source: Словарь с ключом filters, содержащим список условий.
+        :return: Заполненный экземпляр filter_dto.
+        :raises arguments_exception: Если передан не словарь или неверная структура.
+        """
+        if not isinstance(source, dict):
+            raise arguments_exception("source", "Ожидался словарь для создания filter_dto")
+
+        dto = filter_dto()
+        filters_data = source.get("filters", [])
+        if not isinstance(filters_data, list):
+            raise arguments_exception("filters", "Поле filters должно быть списком")
+
+        dto.filters = [filter_item_dto.from_dict(item) for item in filters_data]
         return dto
