@@ -1,8 +1,13 @@
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 
 from main import app, _ensure_storage_loaded
+from Src.Core.event_type import event_type
 from Src.Logics.entity_service import entity_service
+from Src.Logics.log_manager import log_manager
+from Src.Logics.observer import observer
 from Src.Logics.settings_manager import settings_manager
 from Src.Logics.storage_manager import storage_manager
 from Src.Dtos.report_type_enum import report_type_enum
@@ -10,7 +15,10 @@ from Src.Dtos.report_type_enum import report_type_enum
 
 @pytest.fixture(autouse=True)
 def setup_api_storage():
-    """Сбрасывает и заново загружает данные перед каждым API тестом."""
+    """Сбрасывает и заново загружает данные перед каждым API тестом.
+
+    Также восстанавливает log_manager в observer и сбрасывает файл лога.
+    """
     sm = storage_manager()
     sm._groups = []
     sm._ranges = []
@@ -19,6 +27,13 @@ def setup_api_storage():
     sm._recipes = []
     sm._is_loaded = False
     sm._data = {}
+
+    manager = log_manager()
+    manager.set_log_path("logs/app.log")
+    observer.clear()
+    observer.add(manager)
+    manager.clear_log()
+
     _ensure_storage_loaded()
     yield
 
@@ -538,3 +553,72 @@ def test_invalid_result_api_filter_unknown_entity_type(client):
         json={"filters": [{"field_name": "name", "filter_type": "EQUALS", "value": "test"}]},
     )
     assert response.status_code == 400
+
+
+def _read_log_tail(count: int = 10) -> list[str]:
+    """Служебная функция для чтения последних строк файла лога."""
+    log_path = log_manager().log_path
+    if not os.path.exists(log_path):
+        return []
+    with open(log_path, "r", encoding="utf-8") as file:
+        return file.readlines()[-count:]
+
+
+def test_valid_result_api_log_web_method_call(client):
+    """
+    Проверяет логирование вызова web-метода через middleware.
+
+    1. Выполнить GET к корневому эндпоинту.
+    2. Проверить файл лога.
+
+    <expected>В логе есть запись о вызове web-метода с уровнем DEBUG.</expected>
+    """
+    manager = log_manager()
+    manager.clear_log()
+
+    response = client.get("/")
+    assert response.status_code == 200
+
+    lines = _read_log_tail()
+    assert any("| Web | DEBUG |" in line for line in lines)
+    assert any("GET" in line for line in lines)
+
+
+def test_valid_result_api_log_crud_create(client):
+    """
+    Проверяет логирование CRUD-операции создания.
+
+    1. Создать новую группу через POST /api/entities/group.
+    2. Проверить файл лога.
+
+    <expected>В логе есть запись о создании сущности с уровнем INFO.</expected>
+    """
+    manager = log_manager()
+    manager.clear_log()
+
+    response = client.post("/api/entities/group", json={"name": "Лог-тест группа"})
+    assert response.status_code == 201
+
+    lines = _read_log_tail()
+    assert any("| CRUD | INFO |" in line for line in lines)
+    assert any("Лог-тест группа" in line for line in lines)
+
+
+def test_valid_result_api_log_settings_change(client):
+    """
+    Проверяет логирование изменения параметров настроек через setter модели.
+
+    1. Изменить response_format непосредственно в модели настроек.
+    2. Проверить файл лога.
+
+    <expected>В логе есть запись об изменении настроек с уровнем INFO.</expected>
+    """
+    manager = log_manager()
+    manager.clear_log()
+
+    mgr = settings_manager()
+    mgr.settings.response_format = report_type_enum.TXT
+
+    lines = _read_log_tail()
+    assert any("| Settings | INFO |" in line for line in lines)
+    assert any("set_response_format" in line for line in lines)
