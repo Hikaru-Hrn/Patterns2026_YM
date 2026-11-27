@@ -5,12 +5,16 @@ import yaml
 from fastapi import Body, FastAPI, HTTPException, Query, status
 
 from Src.Core.exception import base_exception
+from Src.Dtos.filter_dto import filter_dto
 from Src.Dtos.report_type_enum import report_type_enum
 from Src.Logics.convert_factory import convert_factory
+from Src.Logics.deserialize_factory import deserialize_factory
 from Src.Logics.entity_service import entity_service
+from Src.Logics.filter_prototype import filter_prototype
 from Src.Logics.report_factory import report_factory
 from Src.Logics.settings_manager import settings_manager
 from Src.Logics.storage_manager import storage_manager
+from Src.Logics.turnover_prototype import turnover_prototype
 
 BASE_DIR = Path(__file__).resolve().parent
 OPENAPI_FILE = BASE_DIR / "openapi.yaml"
@@ -305,6 +309,62 @@ def delete_entity(entity_type: str, unique_code: str):
             detail=f"Сущность типа '{entity_type}' с кодом '{unique_code}' не найдена",
         )
     return {"status": "deleted", "unique_code": unique_code}
+
+
+@app.post(
+    "/api/filter/turnover",
+    summary="Сформировать оборотно-сальдовую ведомость с фильтрацией",
+    tags=["Фильтрация"],
+    status_code=status.HTTP_200_OK,
+)
+def get_turnover(payload: dict[str, Any] = Body(...)):
+    """Формирует ОСВ по транзакциям с учетом переданных условий фильтрации."""
+    _ensure_storage_loaded()
+
+    try:
+        dto = deserialize_factory().Convert(payload, filter_dto)
+        transactions = storage_manager().transactions
+        prototype = turnover_prototype(transactions)
+        filtered = prototype.clone(dto)
+        statements = filtered.build_statements()
+        return convert_factory().Convert(statements)
+    except base_exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
+
+
+@app.post(
+    "/api/filter/{entity_type}",
+    summary="Отфильтровать доменные сущности указанного типа",
+    tags=["Фильтрация"],
+    status_code=status.HTTP_200_OK,
+)
+def filter_entities(entity_type: str, payload: dict[str, Any] = Body(...)):
+    """Фильтрует сущности по условиям filter_dto с учетом вложенных связей."""
+    _ensure_storage_loaded()
+    service = entity_service()
+
+    try:
+        items, model_cls = service._resolve_collection(entity_type)
+        collection_name = next(
+            prop_name
+            for prop_name, cls in storage_manager().collection_models.items()
+            if cls is model_cls
+        )
+    except base_exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
+    except StopIteration:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Не удалось определить коллекцию для типа '{entity_type}'",
+        )
+
+    try:
+        dto = deserialize_factory().Convert(payload, filter_dto)
+        prototype = filter_prototype(items, collection_name)
+        result = prototype.clone(dto)
+        return convert_factory().Convert(result.data)
+    except base_exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
 
 
 if __name__ == "__main__":

@@ -1,13 +1,16 @@
+from datetime import datetime
 from typing import get_args
 
 from Src.Core.abstract_manager import abstract_manager
 from Src.Core.validator import validator
+from Src.Logics.filter_index import filter_index
 from Src.Logics.settings_manager import settings_manager
 from Src.Models.group_model import group_model
 from Src.Models.nomenclature_model import nomenclature_model
 from Src.Models.range_model import range_model
 from Src.Models.receipt_model import receipt_model
 from Src.Models.receipt_row_model import recipe_row_model
+from Src.Models.transaction_model import transaction_model
 from Src.Models.warehouse_model import warehouse_model
 
 
@@ -15,8 +18,9 @@ class storage_manager(abstract_manager):
     """Singleton-хранилище доменных справочников в оперативной памяти.
 
     Хранит списки: групп номенклатуры, единиц измерения, номенклатуры,
-    складов и технологических карт (рецептов).
+    складов, технологических карт (рецептов) и транзакций.
     Гарантирует уникальность каждого элемента по его имени или уникальному коду.
+    Поддерживает быструю фильтрацию через filter_index.
     """
 
     _instance = None
@@ -39,9 +43,11 @@ class storage_manager(abstract_manager):
         self._nomenclatures: list = []
         self._warehouses: list = []
         self._recipes: list = []
+        self._transactions: list = []
 
         self._data: dict = {}
         self._is_loaded: bool = False
+        self.__filter_index: filter_index | None = None
         self._initialized = True
 
     # -------------------------------------------------------------------------
@@ -77,6 +83,7 @@ class storage_manager(abstract_manager):
         validator.validate(item, warehouse_model)
         if self._is_unique(self._warehouses, item):
             self._warehouses.append(item)
+            self._invalidate_filter_index()
             return True
         return False
 
@@ -85,6 +92,7 @@ class storage_manager(abstract_manager):
         validator.validate(item, range_model)
         if self._is_unique(self._ranges, item):
             self._ranges.append(item)
+            self._invalidate_filter_index()
             return True
         return False
 
@@ -93,6 +101,7 @@ class storage_manager(abstract_manager):
         validator.validate(item, group_model)
         if self._is_unique(self._groups, item):
             self._groups.append(item)
+            self._invalidate_filter_index()
             return True
         return False
 
@@ -101,6 +110,7 @@ class storage_manager(abstract_manager):
         validator.validate(item, nomenclature_model)
         if self._is_unique(self._nomenclatures, item):
             self._nomenclatures.append(item)
+            self._invalidate_filter_index()
             return True
         return False
 
@@ -109,8 +119,22 @@ class storage_manager(abstract_manager):
         validator.validate(item, receipt_model)
         if self._is_unique(self._recipes, item):
             self._recipes.append(item)
+            self._invalidate_filter_index()
             return True
         return False
+
+    def add_transaction(self, item: transaction_model) -> bool:
+        """Добавляет транзакцию движения номенклатуры."""
+        validator.validate(item, transaction_model)
+        if self._is_unique(self._transactions, item):
+            self._transactions.append(item)
+            self._invalidate_filter_index()
+            return True
+        return False
+
+    def _invalidate_filter_index(self) -> None:
+        """Сбрасывает кэшированный индекс фильтрации при изменении данных."""
+        self.__filter_index = None
 
     # -------------------------------------------------------------------------
     # Поиск по имени для связывания моделей между собой
@@ -149,12 +173,16 @@ class storage_manager(abstract_manager):
         """Формирует первичный набор доменных данных в памяти через фабричные методы.
 
         Создает единицы измерения, склады, группы номенклатуры, номенклатурные
-        позиции и технологические карты (рецепты) с полуфабрикатами и упаковкой.
+        позиции, технологические карты (рецепты) и транзакции.
         Гарантирует уникальность каждого элемента.
 
         :return: True, если данные успешно сформированы.
         """
         try:
+            # Очищаем транзакции, так как convert формирует их заново
+            self._transactions = []
+            self._invalidate_filter_index()
+
             # --- 1. Единицы измерения (через фабричные методы create_*) ---
             unit_g = range_model.create_gram()
             unit_kg = range_model.create_kilogram(unit_g)
@@ -269,6 +297,18 @@ class storage_manager(abstract_manager):
             )
             self.add_recipe(recipe_cookies)
 
+            # --- 6. Транзакции (движения номенклатуры для формирования ОСВ) ---
+            transactions = [
+                transaction_model.create(wh_main, nom_flour, unit_g, 1000.0, datetime(2026, 11, 1, 10, 0, 0)),
+                transaction_model.create(wh_main, nom_flour, unit_g, -200.0, datetime(2026, 11, 5, 12, 0, 0)),
+                transaction_model.create(wh_kitchen, nom_sugar, unit_g, 500.0, datetime(2026, 11, 2, 9, 0, 0)),
+                transaction_model.create(wh_kitchen, nom_sugar, unit_g, -150.0, datetime(2026, 11, 6, 14, 0, 0)),
+                transaction_model.create(wh_main, nom_egg, unit_pcs, 120.0, datetime(2026, 11, 3, 8, 0, 0)),
+                transaction_model.create(wh_main, nom_egg, unit_pcs, -20.0, datetime(2026, 11, 7, 11, 0, 0)),
+            ]
+            for transaction in transactions:
+                self.add_transaction(transaction)
+
             self._is_loaded = True
             return True
         except Exception:
@@ -300,6 +340,16 @@ class storage_manager(abstract_manager):
         if not mgr.settings.first_launch_flag:
             return False
 
+        # Перед первичным формированием очищаем хранилище,
+        # чтобы избежать дублирования данных при повторных запусках
+        self._groups = []
+        self._ranges = []
+        self._nomenclatures = []
+        self._warehouses = []
+        self._recipes = []
+        self._transactions = []
+        self._invalidate_filter_index()
+
         res = self.convert()
         if res:
             mgr.settings.first_launch_flag = False
@@ -319,6 +369,30 @@ class storage_manager(abstract_manager):
                 if args:
                     result[name] = args[0]
         return result
+
+    def get_filter_index(self) -> filter_index:
+        """Возвращает индекс доменных сущностей для быстрой фильтрации.
+
+        Индекс строится лениво при первом обращении и инвалидируется
+        при изменении любой коллекции хранилища.
+
+        :return: Экземпляр filter_index.
+        """
+        if self.__filter_index is None:
+            self.__filter_index = filter_index()
+            self.__filter_index.build(self._get_collections_dict())
+        return self.__filter_index
+
+    def _get_collections_dict(self) -> dict[str, list]:
+        """Возвращает словарь всех коллекций хранилища."""
+        return {
+            "groups": self._groups,
+            "ranges": self._ranges,
+            "nomenclatures": self._nomenclatures,
+            "warehouses": self._warehouses,
+            "recipes": self._recipes,
+            "transactions": self._transactions,
+        }
 
     @property
     def warehouses(self) -> list[warehouse_model]:
@@ -349,3 +423,8 @@ class storage_manager(abstract_manager):
     def recipes(self) -> list[receipt_model]:
         """Возвращает список зарегистрированных технологических карт (рецептов)."""
         return self._recipes
+
+    @property
+    def transactions(self) -> list[transaction_model]:
+        """Возвращает список зарегистрированных транзакций движения номенклатуры."""
+        return self._transactions

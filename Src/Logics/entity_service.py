@@ -196,6 +196,7 @@ class entity_service:
                 pass
             setattr(target, field_name, value)
 
+        storage_manager()._invalidate_filter_index()
         return target
 
     def delete_entity(self, entity_type: str, code: str) -> bool:
@@ -211,4 +212,5 @@ class entity_service:
             )
 
         items.remove(target)
+        storage_manager()._invalidate_filter_index()
         return True
