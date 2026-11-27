@@ -8,6 +8,7 @@ from Src.Core.exception import base_exception
 from Src.Dtos.filter_dto import filter_dto
 from Src.Dtos.report_type_enum import report_type_enum
 from Src.Logics.convert_factory import convert_factory
+from Src.Logics.deserialize_factory import deserialize_factory
 from Src.Logics.entity_service import entity_service
 from Src.Logics.filter_prototype import filter_prototype
 from Src.Logics.report_factory import report_factory
@@ -321,7 +322,7 @@ def get_turnover(payload: dict[str, Any] = Body(...)):
     _ensure_storage_loaded()
 
     try:
-        dto = filter_dto.from_dict(payload)
+        dto = deserialize_factory().Convert(payload, filter_dto)
         transactions = storage_manager().transactions
         prototype = turnover_prototype(transactions)
         filtered = prototype.clone(dto)
@@ -358,7 +359,7 @@ def filter_entities(entity_type: str, payload: dict[str, Any] = Body(...)):
         )
 
     try:
-        dto = filter_dto.from_dict(payload)
+        dto = deserialize_factory().Convert(payload, filter_dto)
         prototype = filter_prototype(items, collection_name)
         result = prototype.clone(dto)
         return convert_factory().Convert(result.data)

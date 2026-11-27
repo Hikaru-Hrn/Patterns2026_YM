@@ -1,12 +1,15 @@
+from Src.Core.abstract_model import abstract_model
 from Src.Core.exception import arguments_exception
 from Src.Core.validator import validator
 from Src.Dtos.filter_type_enum import filter_type_enum
 
 
-class filter_item_dto:
+class filter_item_dto(abstract_model):
     """Одно условие фильтрации данных.
 
     Содержит имя поля, тип сравнения и значение для поиска.
+    Является моделью данных, доступной для сериализации и десериализации
+    через единый механизм проекта.
     """
 
     __field_name: str = ""
@@ -15,6 +18,7 @@ class filter_item_dto:
 
     def __init__(self) -> None:
         """Инициализирует пустое условие фильтрации."""
+        super().__init__()
         self.__field_name = ""
         self.__filter_type = filter_type_enum.EQUALS
         self.__value = ""
@@ -84,34 +88,20 @@ class filter_item_dto:
         item.filter_type = filter_type
         return item
 
-    @staticmethod
-    def from_dict(source: dict) -> "filter_item_dto":
-        """Создает условие фильтрации из JSON-словаря.
 
-        :param source: Словарь с ключами field_name, value, filter_type.
-        :return: Заполненный экземпляр filter_item_dto.
-        :raises arguments_exception: Если передан не словарь.
-        """
-        if not isinstance(source, dict):
-            raise arguments_exception("source", "Ожидался словарь для создания filter_item_dto")
-
-        item = filter_item_dto()
-        item.field_name = source.get("field_name", "")
-        item.value = source.get("value", "")
-        item.filter_type = source.get("filter_type", filter_type_enum.EQUALS)
-        return item
-
-
-class filter_dto:
+class filter_dto(abstract_model):
     """Модель данных для передачи условий фильтрации.
 
     Содержит набор условий filter_item_dto, которые применяются совместно.
+    Является моделью данных, доступной для сериализации и десериализации
+    через единый механизм проекта.
     """
 
-    __filters: list = []
+    __filters: list[filter_item_dto] = []
 
     def __init__(self) -> None:
         """Инициализирует пустой набор условий фильтрации."""
+        super().__init__()
         self.__filters = []
 
     @property
@@ -149,23 +139,4 @@ class filter_dto:
         dto = filter_dto()
         for item in filters:
             dto.add_filter(item)
-        return dto
-
-    @staticmethod
-    def from_dict(source: dict) -> "filter_dto":
-        """Создает DTO фильтрации из JSON-словаря.
-
-        :param source: Словарь с ключом filters, содержащим список условий.
-        :return: Заполненный экземпляр filter_dto.
-        :raises arguments_exception: Если передан не словарь или неверная структура.
-        """
-        if not isinstance(source, dict):
-            raise arguments_exception("source", "Ожидался словарь для создания filter_dto")
-
-        dto = filter_dto()
-        filters_data = source.get("filters", [])
-        if not isinstance(filters_data, list):
-            raise arguments_exception("filters", "Поле filters должно быть списком")
-
-        dto.filters = [filter_item_dto.from_dict(item) for item in filters_data]
         return dto
