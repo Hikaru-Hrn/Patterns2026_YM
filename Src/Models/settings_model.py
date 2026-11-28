@@ -1,7 +1,9 @@
 from Src.Core.abstract_model import abstract_model
+from Src.Core.event_type import event_type
 from Src.Models.organization_model import organization_model
 from Src.Core.validator import validator
 from Src.Dtos.report_type_enum import report_type_enum
+from Src.Logics.observer import observer
 
 
 class settings_model(abstract_model):
@@ -33,6 +35,10 @@ class settings_model(abstract_model):
         """
         validator.validate(value, organization_model, "organization")
         self.__organization = value
+        observer.create(
+            event_type.settings_change(),
+            {"operation": "set_organization", "value": value.name if hasattr(value, "name") else None},
+        )
 
     @property
     def boss_name(self) -> str:
@@ -49,6 +55,10 @@ class settings_model(abstract_model):
         """
         validator.validate(value, str, "boss_name", max_len=self.__max_len_boss_name)
         self.__boss_name = value
+        observer.create(
+            event_type.settings_change(),
+            {"operation": "set_boss_name", "value": value},
+        )
 
     @property
     def account_name(self) -> str:
@@ -65,6 +75,10 @@ class settings_model(abstract_model):
         """
         validator.validate(value, str, "account_name", max_len=self.__max_len_account_name)
         self.__account_name = value
+        observer.create(
+            event_type.settings_change(),
+            {"operation": "set_account_name", "value": value},
+        )
 
     @property
     def first_launch_flag(self) -> bool:
@@ -80,6 +94,10 @@ class settings_model(abstract_model):
         """
         validator.validate(new_flag, bool, "first_launch_flag")
         self.__first_launch_flag = new_flag
+        observer.create(
+            event_type.settings_change(),
+            {"operation": "set_first_launch_flag", "value": new_flag},
+        )
 
     @property
     def response_format(self) -> report_type_enum:
@@ -97,3 +115,7 @@ class settings_model(abstract_model):
             value = report_type_enum.from_string(value)
         validator.validate(value, report_type_enum, "response_format")
         self.__response_format = value
+        observer.create(
+            event_type.settings_change(),
+            {"operation": "set_response_format", "value": value.name},
+        )

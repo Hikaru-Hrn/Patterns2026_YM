@@ -3,8 +3,11 @@ import json
 
 from Src.Core.abstract_covertor import abstract_covertor
 from Src.Core.abstract_manager import abstract_manager
+from Src.Core.event_type import event_type
 from Src.Core.exception import operation_exception
 from Src.Logics.deserialize_factory import deserialize_factory
+from Src.Logics.log_manager import log_manager
+from Src.Logics.observer import observer
 from Src.Models.settings_model import settings_model
 
 
@@ -25,9 +28,9 @@ class settings_manager(abstract_manager):
 
         :return: Единственный экземпляр settings_manager.
         """
-        if not hasattr(cls, "instance"):
-            cls.instance = super(settings_manager, cls).__new__(cls)
-        return cls.instance
+        if cls._instance is None:
+            cls._instance = super(settings_manager, cls).__new__(cls)
+        return cls._instance
 
     def __init__(self):
         """
@@ -55,9 +58,14 @@ class settings_manager(abstract_manager):
         try:
             with open(inner_file_name, "r", encoding="utf-8") as file:
                 self._data = json.load(file)
+            observer.create(event_type.settings_load(), {"file_name": inner_file_name})
             self._is_loaded = self.convert()
         except Exception as e:
             self._is_loaded = False
+            observer.create(
+                event_type.error(),
+                {"subsystem": log_manager.SUBSYSTEM_SETTINGS, "operation": "load", "file_name": inner_file_name, "error": str(e)},
+            )
             raise operation_exception(f"Ошибка при чтении файла {inner_file_name}: {e}")
 
     def convert(self) -> bool:
@@ -99,6 +107,10 @@ class settings_manager(abstract_manager):
         :param value: Новая модель настроек.
         """
         self._settings = value
+        observer.create(
+            event_type.settings_change(),
+            {"operation": "settings_setter", "response_format": value.response_format.name if value.response_format else None},
+        )
 
     @property
     def data(self) -> dict:

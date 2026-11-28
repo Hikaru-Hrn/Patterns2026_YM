@@ -397,3 +397,92 @@ paths:
           description: Запрещено удалять связанную сущность
         '404':
           description: Сущность не найдена
+
+  /api/log:
+    post:
+      summary: Получить записи лога в формате JSON с фильтрацией и сортировкой
+      description: Возвращает список записей лога. Поддерживает фильтрацию через filter_dto и сортировку по полям log_entry_model.
+      operationId: main.get_log
+      tags:
+        - Логирование
+      parameters:
+        - name: sort_by
+          in: query
+          required: false
+          schema:
+            type: string
+            default: period
+            enum: [period, subsystem, level, message]
+        - name: order
+          in: query
+          required: false
+          schema:
+            type: string
+            default: desc
+            enum: [asc, desc]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      field_name:
+                        type: string
+                        example: level
+                      filter_type:
+                        type: string
+                        enum: [EQUALS, LIKE]
+                        example: EQUALS
+                      value:
+                        type: string
+                        example: ERROR
+      responses:
+        '200':
+          description: JSON-массив записей лога
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    period:
+                      type: string
+                      example: "2026-11-27 10:00:00"
+                    subsystem:
+                      type: string
+                      example: CRUD
+                    level:
+                      type: string
+                      example: INFO
+                    message:
+                      type: string
+                      example: "entity_type: group; operation: create_entity"
+        '400':
+          description: Ошибка в параметрах запроса
+
+  /api/log/report/{format}:
+    get:
+      summary: Выгрузить лог в формате отчета
+      description: Формирует отчет по записям лога в указанном формате TXT, CSV или MARKDOWN.
+      operationId: main.get_log_report
+      tags:
+        - Логирование
+      parameters:
+        - name: format
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [TXT, CSV, MARKDOWN]
+      responses:
+        '200':
+          description: Файл отчета по логу
+        '400':
+          description: Некорректный формат отчета

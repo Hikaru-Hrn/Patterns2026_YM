@@ -2,12 +2,15 @@ from datetime import datetime
 from typing import get_args
 
 from Src.Core.abstract_manager import abstract_manager
+from Src.Core.event_type import event_type
 from Src.Core.validator import validator
 from Src.Logics.filter_index import filter_index
+from Src.Logics.observer import observer
 from Src.Logics.settings_manager import settings_manager
 from Src.Models.group_model import group_model
 from Src.Models.nomenclature_model import nomenclature_model
 from Src.Models.range_model import range_model
+from Src.Models.log_entry_model import log_entry_model
 from Src.Models.receipt_model import receipt_model
 from Src.Models.receipt_row_model import recipe_row_model
 from Src.Models.transaction_model import transaction_model
@@ -27,9 +30,9 @@ class storage_manager(abstract_manager):
     _initialized: bool = False
 
     def __new__(cls):
-        if not hasattr(cls, "instance"):
-            cls.instance = super(storage_manager, cls).__new__(cls)
-        return cls.instance
+        if cls._instance is None:
+            cls._instance = super(storage_manager, cls).__new__(cls)
+        return cls._instance
 
     def __init__(self):
         """Однократная инициализация списков хранилища."""
@@ -44,6 +47,7 @@ class storage_manager(abstract_manager):
         self._warehouses: list = []
         self._recipes: list = []
         self._transactions: list = []
+        self._log_entries: list[log_entry_model] = []
 
         self._data: dict = {}
         self._is_loaded: bool = False
@@ -129,6 +133,16 @@ class storage_manager(abstract_manager):
         if self._is_unique(self._transactions, item):
             self._transactions.append(item)
             self._invalidate_filter_index()
+            event = event_type.storage_income() if item.value > 0 else event_type.storage_expense()
+            observer.create(
+                event,
+                {
+                    "operation": "add_transaction",
+                    "warehouse": item.warehouse.name if item.warehouse else "",
+                    "nomenclature": item.nomenclature.name if item.nomenclature else "",
+                    "value": item.value,
+                },
+            )
             return True
         return False
 
@@ -368,6 +382,7 @@ class storage_manager(abstract_manager):
                 args = get_args(attribute.fget.__annotations__.get("return"))
                 if args:
                     result[name] = args[0]
+        result.pop("log_entries", None)
         return result
 
     def get_filter_index(self) -> filter_index:
@@ -392,6 +407,7 @@ class storage_manager(abstract_manager):
             "warehouses": self._warehouses,
             "recipes": self._recipes,
             "transactions": self._transactions,
+            "log_entries": self._log_entries,
         }
 
     @property
@@ -428,3 +444,19 @@ class storage_manager(abstract_manager):
     def transactions(self) -> list[transaction_model]:
         """Возвращает список зарегистрированных транзакций движения номенклатуры."""
         return self._transactions
+
+    @property
+    def log_entries(self) -> list[log_entry_model]:
+        """Возвращает список записей лога."""
+        return self._log_entries
+
+    def add_log_entry(self, entry: log_entry_model) -> bool:
+        """Добавляет запись лога в хранилище.
+
+        :param entry: Запись лога.
+        :return: True, если запись добавлена.
+        """
+        validator.validate(entry, log_entry_model)
+        self._log_entries.append(entry)
+        self._invalidate_filter_index()
+        return True

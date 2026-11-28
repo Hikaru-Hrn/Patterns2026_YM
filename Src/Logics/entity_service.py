@@ -1,9 +1,12 @@
 from Src.Core.abstract_covertor import abstract_covertor
 from Src.Core.abstract_model import abstract_model
+from Src.Core.event_type import event_type
 from Src.Core.exception import arguments_exception, operation_exception
 from Src.Logics.convert_factory import convert_factory
 from Src.Logics.deserialize_factory import deserialize_factory
 from Src.Logics.entity_reference_helper import entity_reference_helper
+from Src.Logics.log_manager import log_manager
+from Src.Logics.observer import observer
 from Src.Logics.storage_manager import storage_manager
 
 
@@ -33,6 +36,10 @@ class entity_service:
             if clean_type in (prop_name.lower(), singular_prop, cls_name, short_cls):
                 return getattr(storage_manager(), prop_name), model_cls
 
+        observer.create(
+            event_type.error(),
+            {"subsystem": log_manager.SUBSYSTEM_CRUD, "operation": "_resolve_collection", "entity_type": entity_type},
+        )
         raise arguments_exception(
             "entity_type",
             f"Неподдерживаемый тип сущности '{entity_type}'"
@@ -41,6 +48,10 @@ class entity_service:
     def get_collection(self, entity_type: str) -> list:
         """Возвращает коллекцию доменных сущностей указанного типа."""
         items, _ = self._resolve_collection(entity_type)
+        observer.create(
+            event_type.crud_read(),
+            {"entity_type": entity_type, "operation": "get_collection", "count": len(items)},
+        )
         return items
 
     def find_entity(self, entity_type: str, code: str):
@@ -56,12 +67,24 @@ class entity_service:
 
         for item in items:
             if getattr(item, "unique_code", None) == clean_code:
+                observer.create(
+                    event_type.crud_read(),
+                    {"entity_type": entity_type, "operation": "find_entity", "code": clean_code},
+                )
                 return item
 
         for item in items:
             if getattr(item, "name", None) == clean_code:
+                observer.create(
+                    event_type.crud_read(),
+                    {"entity_type": entity_type, "operation": "find_entity", "code": clean_code},
+                )
                 return item
 
+        observer.create(
+            event_type.crud_read(),
+            {"entity_type": entity_type, "operation": "find_entity", "code": clean_code, "found": False},
+        )
         return None
 
     @staticmethod
@@ -147,9 +170,18 @@ class entity_service:
         self._validate_and_bind_entity(candidate)
 
         if not storage_manager()._is_unique(items, candidate):
+            observer.create(
+                event_type.error(),
+                {"subsystem": log_manager.SUBSYSTEM_CRUD, "operation": "create_entity", "reason": "duplicate", "entity_type": entity_type, "name": getattr(candidate, "name", "")},
+            )
             raise operation_exception("Сущность с таким кодом или наименованием уже существует")
 
         items.append(candidate)
+        observer.create(
+            event_type.crud_create(),
+            {"entity_type": entity_type, "operation": "create_entity", "unique_code": candidate.unique_code, "name": getattr(candidate, "name", "")},
+        )
+        self.__log_storage_operation(entity_type, candidate, "create_entity")
         return candidate
 
     def update_entity(self, entity_type: str, code: str, payload: dict):
@@ -169,6 +201,10 @@ class entity_service:
             new_code = new_code.strip()
             if new_code != target.unique_code:
                 if self._is_referenced(target):
+                    observer.create(
+                        event_type.error(),
+                        {"subsystem": log_manager.SUBSYSTEM_CRUD, "operation": "update_entity", "reason": "referenced_code_change", "entity_type": entity_type, "unique_code": target.unique_code},
+                    )
                     raise operation_exception(
                         "Запрещено менять код сущности, так как она связана с другой доменной сущностью"
                     )
@@ -182,6 +218,10 @@ class entity_service:
         self._validate_and_bind_entity(candidate, current_target=target)
 
         if any(getattr(item, "name", None) == candidate.name for item in items if item is not target):
+            observer.create(
+                event_type.error(),
+                {"subsystem": log_manager.SUBSYSTEM_CRUD, "operation": "update_entity", "reason": "duplicate_name", "entity_type": entity_type, "name": candidate.name},
+            )
             raise operation_exception(f"Сущность с наименованием '{candidate.name}' уже существует")
 
         for field_name in abstract_covertor._get_fields(target):
@@ -197,6 +237,11 @@ class entity_service:
             setattr(target, field_name, value)
 
         storage_manager()._invalidate_filter_index()
+        observer.create(
+            event_type.crud_update(),
+            {"entity_type": entity_type, "operation": "update_entity", "unique_code": target.unique_code, "name": getattr(target, "name", "")},
+        )
+        self.__log_storage_operation(entity_type, target, "update_entity")
         return target
 
     def delete_entity(self, entity_type: str, code: str) -> bool:
@@ -207,10 +252,39 @@ class entity_service:
             return False
 
         if self._is_referenced(target):
+            observer.create(
+                event_type.error(),
+                {"subsystem": log_manager.SUBSYSTEM_CRUD, "operation": "delete_entity", "reason": "referenced", "entity_type": entity_type, "unique_code": target.unique_code, "name": getattr(target, "name", "")},
+            )
             raise operation_exception(
                 "Запрещено удалять сущность, так как она связана с другой доменной сущностью"
             )
 
         items.remove(target)
         storage_manager()._invalidate_filter_index()
+        observer.create(
+            event_type.crud_delete(),
+            {"entity_type": entity_type, "operation": "delete_entity", "unique_code": target.unique_code, "name": getattr(target, "name", "")},
+        )
+        self.__log_storage_operation(entity_type, target, "delete_entity")
         return True
+
+    @staticmethod
+    def __log_storage_operation(entity_type: str, entity, operation: str) -> None:
+        """Логирует складскую операцию для transaction_model."""
+        from Src.Models.transaction_model import transaction_model
+
+        if entity_type not in ("transaction", "transactions") or not isinstance(entity, transaction_model):
+            return
+
+        value = entity.value
+        event = event_type.storage_income() if value > 0 else event_type.storage_expense()
+        observer.create(
+            event,
+            {
+                "operation": operation,
+                "warehouse": entity.warehouse.name if entity.warehouse else "",
+                "nomenclature": entity.nomenclature.name if entity.nomenclature else "",
+                "value": value,
+            },
+        )
